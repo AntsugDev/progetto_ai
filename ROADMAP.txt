@@ -1,0 +1,10 @@
+| Modulo | Tema                          | Durata      | Output                     |
+| ------ | ----------------------------- | ----------- | -------------------------- |
+| 1      | Fondamenti AI                 | 1 settimana | Schema logico del sistema  |
+| 2      | Matematica e logica           | 2 settimane | Simulazioni formule Excel  |
+| 3      | Dataset e feature engineering | 2 settimane | Dataset clienti-auto       |
+| 4      | Machine Learning base         | 3 settimane | Modello di raccomandazione |
+| 5      | Visualizzazione               | 1 settimana | Grafici interattivi        |
+| 6      | API e integrazione            | 2 settimane | Endpoint `/ai/recommend`   |
+| 7      | AI avanzata                   | 3 settimane | Motore AI completo         |
+| 8      | MVP finale                    | 2 settimane | Demo finale                |

@@ -1,0 +1,99 @@
+Spiegazioni e Passi
+
+| Fase                            | Descrizione                                        | Output                                               |
+| ------------------------------- | -------------------------------------------------- | ---------------------------------------------------- |
+| 1. **Definizione del problema** | Identificare cosa l’AI deve decidere o ottimizzare | Obiettivo chiaro (“consigliare un’auto sostenibile”) |
+| 2. **Raccolta dei dati**        | Definire quali dati servono                        | Dataset clienti, auto, formule                       |
+| 3. **Preparazione dei dati**    | Pulizia, normalizzazione, feature engineering      | Dataset pronto per il modello                        |
+| 4. **Addestramento modello**    | L’AI impara da esempi                              | Modello di raccomandazione                           |
+| 5. **Valutazione**              | Misurare accuratezza e performance                 | Metriche: errori, precisione                         |
+| 6. **Deployment**               | Integrazione con sistema reale                     | API o servizio collegato a Laravel                   |
+
+- I DATI :
+
+| Categoria      | Esempio di dato           | Tipo            |
+| -------------- | ------------------------- | --------------- |
+| Cliente        | età, reddito, figli, zona | input           |
+| Auto           | tipo, prezzo, nuova/usata | input           |
+| Finanziamento  | TAN, rate, anticipo       | input           |
+| Scelta passata | formula selezionata       | target (output) |
+
+
+
+> Analisi logica per capire “quanto pesa” ogni variabile
+    Quando farai la parte di statistica e algebra lineare (Fase 2), useremo queste osservazioni:
+    sostenibilita è il fattore più importante: se > 0.15 (15% del reddito), formula “3anni” è più probabile.
+
+    - figli e tipo_auto_preferita influenzano il tipo di veicolo scelto.
+    - anticipo_percentuale incide più sulla formula che sul tipo di auto.
+     - zona può differenziare per potere d’acquisto (Nord ≈ redditi più alti).
+
+La macchina non legge le informazioni di tipo testo, ma solo numerici, pertanto i dati di tipo string devo essere convertiti in numeri come sotto:
+
+tipo_auto_preferita:
+- Utilitaria → 0
+- Berlina → 1
+- SUV → 2
+- Monovolume → 3
+- Station Wagon → 4
+
+zona:
+- Nord → 0
+- Centro → 1
+- Sud → 2
+
+Importante è trovare la correlazione tra variabili tipo reddito aumenta maggiori possibilità
+
+Formula della rata (ammortamento “francese” / rata costante)
+
+ - P = capitale finanziato (es. prezzo auto meno anticipo)
+- r = tasso periodale (tasso annuo / 12)
+- n = numero di rate (mesi)
+- La rata mensile  P* (r/1-(1+r)**-n)
+
+sostenibilità ≤ 0.15 → confortevole (buona probabilità di accettazione)
+0.15 < sostenibilità ≤ 0.25 → accettabile (valutare altri vincoli)
+sostenibilità > 0.25 → rischiosa (consigliare alternative: anticipo più alto, auto più economica, aumento durata)
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+Regole base di raccomandazione (da mettere come regole esperte prima del ML)
+
+Puoi usare una logica ibrida (prima regole, poi ML):
+
+Vincoli assoluti
+
+Se sostenibilita > 0.35 → rifiuta proposta (troppo onerosa).
+
+Se auto_nuova = 1 e anticipo_percentuale >= 25% → suggerisci formula 3anni (se cliente vuole nuova e ha anticipo).
+
+Regole prioritarie
+
+Se reddito_mensile < 1500 e auto_nuova = 0 → suggerisci finanziamento con durata maggiore (es. 60 rate).
+
+Se reddito_mensile >= 3000 e anticipo_percentuale >= 25 → suggerisci 3anni o bonifico (in base alla preferenza).
+
+Se sostenibilita <= 0.15 e auto_nuova = 1 → consiglia 3anni o bonifico (a seconda del budget).
+
+Fallback
+
+Se più di una formula è valida, ordina per:
+
+sostenibilità minore (min rata/reddito)
+
+preferenza cliente (tipo_auto_preferita)
+
+disponibilità in concessionario
+
+
+L'idea finale dovrebbe essere questa:
+####
+if sostenibilita > 0.35:
+    recommendation = "rivedere proposta (troppo onerosa)"
+else if reddito_mensile < 1500 and auto_nuova == 0:
+    recommendation = "finanziamento - 60 rate"
+else if anticipo_percentuale >= 25 and reddito_mensile >= 3000:
+    recommendation = "3anni (formula nuova)"
+else if sostenibilita <= 0.15:
+    recommendation = "3anni o bonifico (se preferenza e disponibilità)"
+else:
+    recommendation = "finanziamento standard"
+####

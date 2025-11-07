@@ -1,0 +1,1 @@
+Cliente 1 → [reddito_mensile=1800, figli=1, auto_nuova=0, costo_auto=13500, anticipo_percentuale=0, tan=5, n_rate=60, sostenibilita=0.14]

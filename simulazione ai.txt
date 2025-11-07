@@ -1,0 +1,5 @@
+SE reddito_mensile < 1500  E auto_nuova = 0 → consiglia "finanziamento"
+SE reddito_mensile > 2500  E figli > 0 E tipo_auto_preferita = "SUV" → consiglia "3anni"
+SE reddito_mensile > 3000  E anticipo_percentuale >= 25 → consiglia "3anni"
+SE reddito_mensile > 2000  E anticipo_percentuale = 0 → consiglia "finanziamento"
+SE reddito_mensile > 4000  E tipo_auto_preferita IN ["SUV", "berlina"] → consiglia "bonifico"
