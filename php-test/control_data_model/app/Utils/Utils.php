@@ -25,20 +25,28 @@ class Utils
 
     public function getData()
     {
-        try{
-            $this->model->each(function($item){
-               
-                $importo = $this->getImport($item->costo_auto, !boolval($item->nuovo_usato));
-                $rata =$this->getRata(intval($item->nr_rate),$importo,floatval($item->tan));
-                
-            });          
+        try {
+            $result = new \Illuminate\Support\Collection;
+            $this->model->each(function ($item) use (&$result) {
 
-            
-        }catch(\Exception $e){
+                $importo = $this->getImport($item->costo_auto, ! boolval($item->nuovo_usato));
+                $rata = $this->getRata(intval($item->nr_rate), $importo, floatval($item->tan));
+                $sostenibilita = $this->sostenibilita(floatval($item->diff_reddito), $rata);
+                $coefficienteK = $this->coefficenteK($sostenibilita, $item->nr_rate);
+                $result->add([
+                    'costo_auto'=>$item->costo_auto,
+                    'formula'=>boolval($item->nuovo_usato) ? 'usata' :'nuova' ,
+                    'importo' => $importo,
+                    'rata' => $rata,
+                    'sostenibilita' => $sostenibilita,
+                    'coefficienteK' => $coefficienteK,
+                ]);
+            });
+
+        } catch (\Exception $e) {
             throw new \Exception($e->getMessage());
         }
 
-            
     }
 
     public function getSoglia(): float|int
