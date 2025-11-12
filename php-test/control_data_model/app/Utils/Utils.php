@@ -35,7 +35,7 @@ class Utils
                 $coefficienteK = $this->coefficenteK($sostenibilita, $item->nr_rate);
                 $result->add([
                     'costo_auto'=>$item->costo_auto,
-                    'formula'=>boolval($item->nuovo_usato) ? 'usata' :'nuova' ,
+                    'formula'=> boolval($item->nuovo_usato) ? 'usata' :'nuova' ,
                     'importo' => $importo,
                     'rata' => $rata,
                     'sostenibilita' => $sostenibilita,
