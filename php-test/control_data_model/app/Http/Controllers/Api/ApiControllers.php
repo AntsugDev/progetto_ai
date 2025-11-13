@@ -29,9 +29,9 @@ class ApiControllers extends Controller{
         "costo_auto"=> "numeric|required",
         "k" => "numeric|required",
     ])){
-        $data = request()->validationData();
+        $data = request()->all();
         
-        $ic = ($data['k']-1.3)/(1.6-1.3)
+        $ic = ($data['k']-1.3)/(1.6-1.3);
         $anticipo = 0.40*$ic*$data['costo_auto'];
         $finNuovaA =  $data['costo_auto']-$anticipo;
         
@@ -45,7 +45,7 @@ class ApiControllers extends Controller{
     
     
     }catch(\Exception $e){
-    
+    dd($e);
     echo $e->getMessage(); die;
     }
     
