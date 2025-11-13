@@ -4,6 +4,7 @@ namespace App\Utils;
 
 use App\Models\DataModel;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Storage;
 
 class Utils
 {
@@ -39,7 +40,11 @@ class Utils
                 $Re = $this->RE($Rincome,$Ranticipo);
                 $Rs = $this->RS($sostenibilita);
                 $Rd = $this->RD(!boolval($item->patentato), intval($item->nr_figli));
-                $decisione = $this->score_decisionale($Re,$Rs,$Rd,$sostenibilita, !boolval($item->nuovo_usato),$coefficienteK,floatval($item->costo_auto), intval($item->nr_rate));
+                $score = 0;
+                $decisione = $this->score_decisionale($Re,$Rs,$Rd,$sostenibilita, !boolval($item->nuovo_usato),$coefficienteK,floatval($item->costo_auto), intval($item->nr_rate),$score);
+                $simulazione = []; 
+                if($sostenibilita >= 0.21 && $sostenibilita <= 0.29) $simulazione = $this->simulazione(floatval($coefficienteK[0]), floatval($item->costo_auto),
+                !boolval($item->nuovo_usato),floatval($item->tan),intval($item->nr_rate),floatval($item->diff_reddito));
                 $result->add([
                     'id' => $count,
                     'reddito'=>floatval($item->diff_reddito),
@@ -56,19 +61,92 @@ class Utils
                     'RE'=>$Re,
                     'RS'=>$Rs,
                     'RD'=> $Rd,
-                    'Decisione_finale' => $decisione
+                    'RT'=>$score,
+                    'Decisione_finale' => $decisione,
+                    "simulazione" => $simulazione
                     
                 ]);
                 $count ++;
             });
-			
+			$this->createCsv($result);
 			return $result;
 
         } catch (\Exception $e) {
+        dd($e);
             throw new \Exception($e->getMessage());
         }
 
     }
+    public function createCsv(\Illuminate\Support\Collection $array){
+    try{
+        $keys =array_keys($array->get(0));
+        $head = implode(',',$keys)."\n";
+        $array->each(function($item)use(&$head){
+        $head .= $item['id'].','.
+                 $item['reddito'].','.
+                 $item['Rincome'].','.
+                 $item['costo_auto'].','.
+                 $item['formula'].','.
+                 $item['anticipo'].','.
+                 $item['Ranticipo'].','.
+                 $item['importo'].','.
+                 $item['nrRate'].','.
+                 $item['rata'].','.
+                 $item['sostenibilita'].','.
+                 $item['coefficienteK'][0].','.
+                 $item['RE'].','.
+                 $item['RS'].','.
+                 $item['RD'].','.
+                 $item['RT'].','.
+                 $item['Decisione_finale']."\n";
+        
+        });
+        
+        
+        Storage::disk('save')->put('data.php.csv',$head);
+        } catch (\Exception $e) {
+        dd($e);
+            throw new \Exception($e->getMessage());
+        }
+    }
+    
+    public function simulazione(float $k,float $costoAuto, bool $formula,float $tan, int $nrRate, float $reddito ){
+        $sostenibilitaA = 0;
+        $importoFin = $this->getImport($costoAuto,$formula);
+        if(!$formula){
+        $Ic = ($k-1.3)/(1.6-1.3);
+        $anticipo = 0.40*$Ic*$costoAuto;
+        $finNuovaA =  $costoAuto-$anticipo;
+        $rataNuovaA = $this->getRata($nrRate,$finNuovaA,$tan);
+        $sostenibilitaA = $rataNuovaA/$reddito;
+        }
+        
+        $nrRateNuove = round($nrRate+($Ic*0.40*$nrRate));
+        $rataNuovaB = $this->getRata($nrRateNuove,$importoFin,$tan);
+        $sostenibilitaB = $rataNuovaB/$reddito;
+        $min = $sostenibilitaA > 0 ? min($sostenibilitaA,$sostenibilitaB) : $sostenibilitaB;
+        
+        return [
+            "simulazione_anticipo_solo_auto_usata" =>!$formula ? [
+                "anticipo" => number_format($anticipo,2,',','.'),
+                "importo_fin" => number_format($finNuovaA,2,',','.'),
+                "importo_rata" => number_format($rataNuovaA,2,',','.'),
+                "sostenibilita"=>number_format($sostenibilitaA,2,',','.'),
+                "decisione_finale" => $sostenibilitaA <= 0.30 ? 'Accettabile' : 'Non accettabile'
+            ] : [],
+            "simulazione_nr_rate" =>[
+                "nr_rate_origin" => $nrRate,
+                "nr_rata_new" => $nrRateNuove,
+                 "importo_rata" => number_format($rataNuovaB,2,',','.'),
+                "sostenibilita"=>number_format($sostenibilitaB,2,',','.'),
+                "decisione_finale" => $sostenibilitaB <= 0.30 ? 'Accettabile' : 'Non accettabile'
+            ],
+            "soluzione_consiglata" => $min === $sostenibilitaA ? 'Anticipo' : 'Aumentare la durata del finanziamento'
+        
+        ];
+    
+    }
+
 
     public function getSoglia()
     {
@@ -132,18 +210,16 @@ class Utils
     return $base;
     }
     
-    public function score_decisionale(int $RE, int $RS, int $RD, float $sostenibilita, bool $formula, array $K, float $costoAuto, int $nrRate){
+    public function score_decisionale(int $RE, int $RS, int $RD, float $sostenibilita, bool $formula, array $K, float $costoAuto, int $nrRate,int &$score = 0){
     
      $score = ($RE*0.5)+($RS*0.3)+($RD*0.2);
     if($sostenibilita >= 0.35) return "Non concedibile";
     else if($sostenibilita >= 0.21 && $sostenibilita <= 0.34 && !$formula){
-        $importoDaAnticipare =array_key_exists(2,$K) && $K[2] >0 ?  $costoAuto *($K[2]/100) : 0;
-        $nrRateT  = array_key_exists(3,$K) && $K[3] >0 ? $nrRate+$K[3] : $nrRate;
-        return "Simulazione sceniario nuovo dove devo verificare e studiare se dando un anticipo di ".number_format($importoDaAnticipare,2,',','.')." euro, oppure aumentando le rate fino a $nrRateT cosa cambia ...";
+        return "L'accettazione del finanziamento è soggetta a revisione con una simulazione che preveda un anticipo o che aumenti la durata del finanziamento";
     }else {
         if($score <= 1.5) return "Bonifico";
         else if($score >= 1.6 && $score < 4) return $formula ? 'Finanziamento a 3 anni' : 'Finanziamento Classico';
-        else if($score >= 4 && $score < 5)  return 'Finanziamento con riserva (da simulare e dipendente da K)';
+        else if($score >= 4 && $score < 5)  return "L'accettazione del finanziamento è soggetta a revisione con una simulazione che preveda un anticipo o che aumenti la durata del finanziamento";
         else return "Non concedibile";
     }
     
@@ -152,13 +228,12 @@ class Utils
     }
     
     
-    public function getImport(float $reddito, bool $formula = true): float|int
+    public function getImport(float $costoAuto, bool $formula = true): float|int
     {
         if ($formula) {
-            return $reddito * (10 / 100);
-        } else {
-            return $reddito;
+            return $costoAuto * (10 / 100);
         }
+            return $costoAuto;
 
     }
 
@@ -193,25 +268,25 @@ class Utils
     public function coefficenteK(float $sostenibilita, int $nrRate)
     {
         if ($nrRate === 0) {
-            return [0, 'Non calcolabile',0,0];
+            return [0, 'Non calcolabile'];
         }
         if ($sostenibilita <= 0.20) {
             return [1.0, 'Ottima'];
         } elseif ($sostenibilita >= 0.35) {
-            return [round($sostenibilita / 0.20), 'Non concedibile',0,0];
+            return [round($sostenibilita / 0.20), 'Non concedibile'];
         } else {
             $k = $sostenibilita / 0.20;
             //todo da rivedere o troppo alti i valori o troppo bassi
             $anticipo = round(($k - 1) * 80, 1);
             $nrRatePlus = intval(24 * ($k - 1));
             if ($k <= 1.20) {
-                return [$k, "Azione: anticipo del $anticipo%", $anticipo, 0];
+                return [$k, "Revisione"];
             } elseif ($k <= 1.40) {
-                return [$k, "Azione: anticipo del $anticipo% o $nrRatePlus rate in più", $anticipo, $nrRatePlus];
+                return [$k, "Revisione"];
             } elseif ($k <= 1.70) {
-                return [$k, "Azione: anticipo del $anticipo% o $nrRatePlus rate in più",$anticipo, $nrRatePlus];
+                return [$k,  "Revisione"];
             } else {
-                return [$k, 'Non sostenibile',0,0];
+                return [$k, 'Non sostenibile'];
             }
         }
     }

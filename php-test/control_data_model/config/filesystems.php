@@ -46,6 +46,13 @@ return [
             'throw' => false,
             'report' => false,
         ],
+        'save' => [
+            'driver' => 'local',
+            'root' => '/home/famigliapassasugamele/web/PYTHON/PROGETTO/file',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
 
         's3' => [
             'driver' => 's3',
