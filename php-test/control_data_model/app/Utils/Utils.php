@@ -81,30 +81,46 @@ class Utils
     try{
         $keys =array_keys($array->get(0));
         $head = implode(',',$keys)."\n";
-        $array->each(function($item)use(&$head){
+        $headSimulation ="ID,ANTICIPO U,IMPORTO U, RATA U, SOSTENIBILITA U, DECISIONE U,NEW RATA, IMPORTO, SOSTENIBILITA , DECISIONE, DECISIONE FINALE \n";
+        $array->each(function($item)use(&$head, &$headSimulation){
         $head .= $item['id'].','.
                  $item['reddito'].','.
-                 $item['Rincome'].','.
                  $item['costo_auto'].','.
                  $item['formula'].','.
                  $item['anticipo'].','.
-                 $item['Ranticipo'].','.
                  $item['importo'].','.
                  $item['nrRate'].','.
                  $item['rata'].','.
                  $item['sostenibilita'].','.
                  $item['coefficienteK'][0].','.
-                 $item['RE'].','.
-                 $item['RS'].','.
-                 $item['RD'].','.
-                 $item['RT'].','.
                  $item['Decisione_finale']."\n";
-        
+                 
+                 if(count($item['simulazione']) > 0)
+                 $headSimulation .=  $item['id'].','.$item['simulazione']['simulazione_anticipo_solo_auto_usata']['anticipo'].",".
+                                     $item['simulazione']['simulazione_anticipo_solo_auto_usata']['importo_fin'].",".
+                                     $item['simulazione']['simulazione_anticipo_solo_auto_usata']['importo_rata'].",".
+                                     $item['simulazione']['simulazione_anticipo_solo_auto_usata']['sostenibilita'].",".
+                                     $item['simulazione']['simulazione_anticipo_solo_auto_usata']['decisione_finale'].",".
+                                     $item['simulazione']['simulazione_nr_rate']['nr_rata_new'].",".
+                                     $item['simulazione']['simulazione_nr_rate']['sostenibilita'].",".
+                                     $item['simulazione']['simulazione_nr_rate']['decisione_finale'].",".
+                                     $item['simulazione']['soluzione_consiglata']."\n";
+                 
+                 
         });
-        
-        
-        Storage::disk('save')->put('data.php.csv',$head);
+        Storage::disk('save')->put('ai_decision.php.csv',$head);
+        Storage::disk('save')->put('ai_simulation.php.csv',$headSimulation);
         } catch (\Exception $e) {
+        dd($e);
+            throw new \Exception($e->getMessage());
+        }
+    }
+    
+    public function csvSimulation(array $simulation){
+     try{
+            
+     
+      } catch (\Exception $e) {
         dd($e);
             throw new \Exception($e->getMessage());
         }
@@ -114,7 +130,7 @@ class Utils
         $sostenibilitaA = 0;
         $importoFin = $this->getImport($costoAuto,$formula);
         if(!$formula){
-        $Ic = ($k-1.3)/(1.6-1.3);
+        $Ic = $k/1.6;
         $anticipo = 0.40*$Ic*$costoAuto;
         $finNuovaA =  $costoAuto-$anticipo;
         $rataNuovaA = $this->getRata($nrRate,$finNuovaA,$tan);
