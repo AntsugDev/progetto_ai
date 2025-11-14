@@ -4,7 +4,10 @@
 
 Questo progetto ha lo scopo di creare un AI a fini di studio.
 
-Il progetto laravel in essere, ha il solo scopo di confronto dei risultati ottenuti dallo script in python.
+Il progetto laravel in essere, ha il solo scopo di confronto dei risultati ottenuti dallo script in python e si trova nella directory [LARAVEL](php-test/control_data_model)
+
+Nella directory **script_ufficiali**, si trovano gli script python
+
 
 
 ## Logica
