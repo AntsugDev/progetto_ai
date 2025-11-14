@@ -1,5 +1,7 @@
 # Progetto AI
 
+Per maggiori dettagli si rimanda [Progetto AI- WORLD](https://docs.google.com/document/d/1H7IxkOZ4bvjfylxURQkMoo6dv6zCkGSAIYgHQcgnA-w/edit?usp=sharing)
+
 ## Descrizione 
 
 Questo progetto ha lo scopo di creare un AI a fini di studio.
