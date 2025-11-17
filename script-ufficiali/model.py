@@ -257,7 +257,8 @@ def main():
             "RS": rs,
             "RD": rd,
             "RT": rt.rt,
-            "Decisione_finale": rt.result
+            "Decisione_finale": rt.result,
+            "Simulazione": simulazione['soluzione_consigliata'] if simulazione and sosten <= 0.35 else ""
         })
 
         # append SIMULAZIONE.csv
@@ -265,25 +266,17 @@ def main():
             simA = simulazione["simulazione_anticipo_solo_auto_usata"]
             simB = simulazione["simulazione_nr_rate"]
 
-            dati_sim.append({
-                "id": idc,
-                "sim_anticipo": simA.get("anticipo",""),
-                "sim_anticipo_sostenibilita": simA.get("sostenibilita",""),
-                "sim_rate_nuove": simB["nr_rata_new"],
-                "sim_rate_sostenibilita": simB["sostenibilita"],
-                "soluzione_consigliata": simulazione["soluzione_consigliata"]
-            })
-
+            print(f"Per il cliente {idc}, la simulazione 'ANTICIPO:'", simA)
+            print("***************************************************************")
+            print(f"Per il cliente {idc}, la simulazione 'RATE:'", simB)
+            print("-----------------------------------------------------------")
+            print("-----------------------------------------------------------\n\n")
+            
     # WRITE CSV
     with open("../file/MODEL.csv", "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=dati_modello[0].keys())
         writer.writeheader()
         writer.writerows(dati_modello)
-
-    with open("../file/SIMULAZIONE.csv", "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=dati_sim[0].keys())
-        writer.writeheader()
-        writer.writerows(dati_sim)
 
     print("FILE CREATI: MODEL.csv e SIMULAZIONE.csv")
 
