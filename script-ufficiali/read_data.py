@@ -18,8 +18,9 @@ try:
         cursorclass=pymysql.cursors.DictCursor
     )
     cursor = conn.cursor()
-    cursor.execute("DROP TABLE model;")
-    cursor.commit()
+    cursor.execute("DELETE FROM simulation;")
+    cursor.execute("DELETE FROM model;")
+    conn.commit()
     for row in data.itertuples(index=False):
         cliente = str(uuid.uuid4())
 
