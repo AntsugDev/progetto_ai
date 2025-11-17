@@ -3,6 +3,7 @@ import pymysql
 import uuid
 
 try:
+   
     data = pd.read_csv("../file/datamodel.csv")
 
     # 🔥 Converti automaticamente tutte le colonne numeriche con virgola
@@ -17,7 +18,8 @@ try:
         cursorclass=pymysql.cursors.DictCursor
     )
     cursor = conn.cursor()
-
+    cursor.execute("DROP TABLE model;")
+    cursor.commit()
     for row in data.itertuples(index=False):
         cliente = str(uuid.uuid4())
 
@@ -57,7 +59,7 @@ try:
     conn.commit()
     cursor.close()
     conn.close()
-
+    print("Operazione terminata")
 except Exception as e:
     print("eccezione", e)
 
