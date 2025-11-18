@@ -144,8 +144,8 @@ insert into neo_patentato  (testo) values ('No');
 
 #--------------------------------------
 
-insert into nuovo_usato   (testo) values ('Si');
-insert into nuovo_usato  (testo) values ('No');
+insert into nuovo_usato   (testo) values ('Nuova');
+insert into nuovo_usato  (testo) values ('Usata');
 
 #--------------------------------------------------
 

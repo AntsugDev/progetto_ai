@@ -118,7 +118,7 @@ def get_soglia(connection) -> float:
         massimo = float(row['massimo'])
 
         soglia = media + (media * (minimo / massimo))
-        return round(soglia, 2)
+        return round(soglia, 2) if soglia < 2000 else 2000.0
 
 
 def r_income(reddito, soglia):
@@ -162,8 +162,7 @@ def get_rd(figli, neo):
 
 
 def get_rt(re, rs, rd, s, formula):
-    rt = round((0.5 * re) + (0.3 * rs) + (0.2 * rd), 2)
-
+    rt = float((0.5 * re) + (0.3 * rs) + (0.2 * rd))
     if s >= 0.35:
         esito = "Non concedibile"
 
@@ -173,16 +172,16 @@ def get_rt(re, rs, rd, s, formula):
     elif rt <= 1.5:
         esito = "Bonifico"
 
-    elif 1.6 <= rt < 4:
+    elif 1.6 <= rt <= 4:
         esito = "Finanziamento a 3 anni" if formula else "Finanziamento Classico"
 
-    elif 4 <= rt < 5:
+    elif 4 < rt < 5:
         esito = "Revisione con simulazione"
 
-    else:
+    elif rt >= 5:
         esito = "Non concedibile"
 
-    return RTResult(rt=rt, result=esito)
+    return RTResult(rt=round(rt,2), result=esito)
 
 
 # ==========================================================
@@ -206,81 +205,115 @@ def main():
         print("Soglia reddito:", soglia)
 
         with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM datamodel")
+            cursor.execute("SELECT * FROM model")
             rows = cursor.fetchall()
+            cursor.execute("DELETE FROM simulation")
 
-    # CSV data storage
-    dati_modello = []
-    dati_sim = []
+        conn.commit()
 
-    for row in rows:
+        with conn.cursor() as cursor:
+            for row in rows:
 
-        idc = row["cliente"]
-        costo = float(row["costo_auto"])
-        formula_nuova = not bool(row["nuovo_usato"])
-        nr_rate = int(row["nr_rate"])
-        tan = float(row["tan"])
-        reddito = float(row["diff_reddito"])
-        anticipo = float(row["anticipo"]) * 100
-        figli = int(row["nr_figli"])
-        neo = not bool(row["neo_patentato"])
+                idc = row["cliente"]
+                costo = float(row["costo_auto"])
+                formula_nuova = True if row["nuovo_usato_id"] == 1 else False
+                nr_rate = int(row["nr_rate"])
+                tan = float(row["tan"])
+                reddito = float(row["diff_reddito"])
+                anticipo = float(row["anticipo"]) * 100
+                figli = int(row["nr_figli"])
+                neo = True if row["neo_patentato_id"] == 1 else False
 
-        # importo – rata – sostenibilità – k
-        importo_fin = analyzer.get_import(costo, formula_nuova)
-        rata = analyzer.get_rata(nr_rate, tan, importo_fin)
-        sosten = rata / reddito if reddito > 0 else 1
-        k = round(sosten / 0.20, 3)
+                # importo – rata – sostenibilità – k
+                importo_fin = analyzer.get_import(costo, formula_nuova)
+                rata = analyzer.get_rata(nr_rate, tan, importo_fin)
+                sosten = rata / reddito if reddito > 0 else 1
+                k = round(sosten / 0.20, 3)
 
-        # rating
-        re = get_re(reddito, anticipo, formula_nuova, soglia)
-        rs = get_rs(sosten)
-        rd = get_rd(figli, neo)
-        rt = get_rt(re, rs, rd, sosten, formula_nuova)
+                # rating
+                re = get_re(reddito, anticipo, formula_nuova, soglia)
+                rs = get_rs(sosten)
+                rd = get_rd(figli, neo)
+                rt_outpt = get_rt(re, rs, rd, sosten, formula_nuova)
 
-        # simulazione
-        simulazione = None
-        if (0.21 <= sosten <= 0.34) or (4 <= rt.rt < 5):
-            simulazione = analyzer.simulazione(k, costo, formula_nuova, tan, nr_rate, reddito)
+                # simulazione
+                simulazione = None
+                if (0.21 <= sosten <= 0.34) or (0.21 <= sosten <= 0.34 and 4 < rt_outpt.rt < 5):
+                    simulazione = analyzer.simulazione(k, costo, formula_nuova, tan, nr_rate, reddito)
 
-        # append MODEL.csv
-        dati_modello.append({
-            "id": idc,
-            "reddito": f"{reddito:.2f}",
-            "costo_auto": f"{costo:.2f}",
-            "formula": "Nuova" if formula_nuova else "Usata",
-            "nr_rate": nr_rate,
-            "importo_fin": f"{importo_fin:.2f}",
-            "rata": f"{rata:.2f}",
-            "sostenibilita": f"{sosten:.3f}",
-            "K": f"{k:.3f}",
-            "RE": re,
-            "RS": rs,
-            "RD": rd,
-            "RT": rt.rt,
-            "Decisione_finale": rt.result,
-            "Simulazione": simulazione['soluzione_consigliata'] if simulazione and sosten <= 0.35 else ""
-        })
+                cursor.execute(
+                    """
+                    UPDATE model SET importo_finanziato = %s, rata = %s, sostenibilita = %s, 
+                    coefficiente_K = %s, re = %s, rs = %s, rd = %s, rt = %s, 
+                    decisione_AI = %s, is_simulation = %s WHERE id = %s
+                    """,
+                    (
+                        float(importo_fin),
+                        float(rata),
+                        float(sosten),
+                        float(k),
+                        int(re),
+                        int(rs),
+                        int(rd),
+                        float(rt_outpt.rt),
+                        rt_outpt.result,
+                        'S' if (0.21 <= sosten <= 0.34) or (0.21 <= sosten <= 0.34 and 4 < rt_outpt.rt < 5) else 'N',
+                        int(row['id'])
+                    )
+                )
 
-        # append SIMULAZIONE.csv
-        if simulazione:
-            simA = simulazione["simulazione_anticipo_solo_auto_usata"]
-            simB = simulazione["simulazione_nr_rate"]
+                # append SIMULAZIONE.csv
+                if simulazione:
+                    simA = simulazione["simulazione_anticipo_solo_auto_usata"]
+                    simB = simulazione["simulazione_nr_rate"]
+                    
+                    if simA:
+                        cursor.execute(
+                            """
+                            INSERT INTO simulation (model_id, simulation_type_id, anticipo, 
+                            importo_finanziamento, importo_rata, sostenibilita, decisione) 
+                            VALUES(%s, %s, %s, %s, %s, %s, %s)
+                            """,
+                            (
+                                row['id'],
+                                1,
+                                float(simA['anticipo']),
+                                float(simA['importo_fin']),
+                                float(simA['importo_rata']),
+                                float(simA['sostenibilita']),
+                                simA['decisione_finale'],
+                            )
+                        )
+                    
+                    if simB:
+                        cursor.execute(
+                            """
+                            INSERT INTO simulation (model_id, simulation_type_id, nr_rata, 
+                            rata, sostenibilita, decisione) 
+                            VALUES(%s, %s, %s, %s, %s, %s)
+                            """,
+                            (
+                                row['id'],
+                                2,
+                                int(simB['nr_rata_new']),
+                                float(simB['importo_rata']),
+                                float(simB['sostenibilita']),
+                                simB['decisione_finale'],
+                            )
+                        )
+                    
+                    cursor.execute(
+                        """
+                        UPDATE simulation SET decision_AI = %s WHERE model_id = %s
+                        """,
+                        (
+                            simulazione['soluzione_consigliata'],
+                            row['id']
+                        )
+                    )
 
-            print(f"Per il cliente {idc}, la simulazione 'ANTICIPO:'", simA)
-            print("***************************************************************")
-            print(f"Per il cliente {idc}, la simulazione 'RATE:'", simB)
-            print("-----------------------------------------------------------")
-            print("-----------------------------------------------------------\n\n")
-            
-    # WRITE CSV
-    with open("../file/MODEL.csv", "w", newline="", encoding="utf-8-sig") as f:
-        writer = csv.DictWriter(f, fieldnames=dati_modello[0].keys())
-        writer.writeheader()
-        writer.writerows(dati_modello)
-
-    print("FILE CREATI: MODEL.csv e SIMULAZIONE.csv")
+            conn.commit()
 
 
 if __name__ == "__main__":
     main()
-
