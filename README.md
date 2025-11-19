@@ -37,3 +37,22 @@ Nella directory **script_ufficiali**, si trovano gli script python
 	- se auto nuova calcolo:
 	       - simulazione più rate = nrRate +(Ic * 40% * nrRate); quindi dovrà essere ricalcolata la nuova rata e la sostenibilità
 	- a questo punto espongo i risultati, vedendo innanzitutto se la sostenibilità è inferiore al 25% e confronto quale tra le due sia la minore; quella che lo è risulta la decisione dell'AI   
+	
+## Fasi
+
+### Creazione del modello
+
+Attraverso il file [model.py](script-ufficiali/Parte Iniziale -model data/model.py), viene creato il modello base e le condizioni di valutazione ed esito del modello; in questo sono presenti lo studio e la definizione delle condizioni
+
+Il file  [read_data](script-ufficiali/Parte Iniziale -model data/read_data.py), serve per inserire dei dati grezzi base (100 righe) sul database
+
+Da questi due file si passa allo studio dei modelli, iniziando dal **Predittivo**
+
+## Modello Predittivo
+
+Questo è presente nella directory [Predittivo](/home/famigliapassasugamele/web/PYTHON/PROGETTO/script-ufficiali/Predittivo), in cui sono presenti i seguenti file:
+
+- *train_model.py*, dove viene creato il file del modello e dove viene addestrato quet'ultimo
+- *calcoli.py*, dove sono riportati i calcoli delle condizioni esposte nel file *model.py*
+- *update.py*, dove vengono eseguite le query di inserimento e aggiornamento dei dati
+- *test_model.py*, test di prova
