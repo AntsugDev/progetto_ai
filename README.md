@@ -15,7 +15,7 @@ Nella directory **script_ufficiali**, si trovano gli script python
 ## Logica
 
 - definiamo una soglia di reddito che deve essere uguale a :
-		<code>RedditoMedio + (RedditoMedio *(RedditoMin/RedditoMax))</code>
+		<code>RedditoMedio + (RedditoMedio *(RedditoMin/RedditoMax))</code>, con il risultato che se è minore di 2000, prendo la formula , altrimenti prendo 2000
 - calcoliamo 3 score:
 	- RE (econominco), dovuto per l'80% dal reddito e dal 20% dell'anticipo(se auto nuova)
 	- RS (sostenibilità)
