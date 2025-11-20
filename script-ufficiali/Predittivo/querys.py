@@ -10,4 +10,4 @@ columnsSimB= ["model_id", "simulation_type_id", "nr_rata","rata", "sostenibilita
 INSERT_MODEL = """INSERT INTO modello ({}) VALUES ({})""".format(getColumns(columns),getVales(columns))
 INSERT_SIMULATION_A = """INSERT INTO simulation ({}) VALUES ({})""".format(getColumns(columnsSimA),getVales(columnsSimA))
 INSERT_SIMULATION_B = """INSERT INTO simulation ({}) VALUES ({})""".format(getColumns(columnsSimB),getVales(columnsSimB))
-SELECT_ID = """ """
+SELECT_ID = """SELECT id FROM %s WHERE upper(TESTO) = upper(%s) """
