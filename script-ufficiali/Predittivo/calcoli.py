@@ -2,6 +2,8 @@
 import numpy as np
 import pandas as pd
 import pymysql
+from connection import Connection
+from querys import SELECT_TAN
 
 class FinancialCalculator:
     """
@@ -277,3 +279,14 @@ class FinancialCalculator:
             'simulazione': simulazione,
             'calcoli_completati': True
         }
+        
+    def getTan(formula):
+       try:
+            conn = Connection()
+            with  conn.cursor() as cursor:
+                cursor.execute(SELECT_TAN,(formula.upper()))
+                row = cursor.fetchone()
+                if row : return row['tan']
+                else: raise ValueError(f"Tan not found for {formula}") 
+       except Exception as e:
+            raise e

@@ -11,3 +11,4 @@ INSERT_MODEL = """INSERT INTO modello ({}) VALUES ({})""".format(getColumns(colu
 INSERT_SIMULATION_A = """INSERT INTO simulation ({}) VALUES ({})""".format(getColumns(columnsSimA),getVales(columnsSimA))
 INSERT_SIMULATION_B = """INSERT INTO simulation ({}) VALUES ({})""".format(getColumns(columnsSimB),getVales(columnsSimB))
 SELECT_ID = """SELECT id FROM %s WHERE upper(TESTO) = upper(%s) """
+SELECT_TAN =   """ select distinct cast(tan as DECIMAL(10,2)) as tan from model m left join nuovo_usato nu on (nu.id = m.nuovo_usato_id) WHERE upper(testo) = upper(%s) """ 

@@ -48,7 +48,7 @@ class DatabaseUpdater:
                        'eta_veicolo': int(data['eta_veicolo']),
                        'oneri_accessori': (data['costo_auto']*0.01),
                        'anticipo': float(data['anticipo']),
-                       'tan': float(data['tan']),
+                       'tan': float(calcola.getTan(data['nuovo_usato'])),
                        'formula_acquisto_id': self.getId('formula_acquisto',data['formula_acquisto']),
                        'nr_rate': int(data['nr_rate']),
                        'sostenibilita' : calcola['sostenibilita'],
