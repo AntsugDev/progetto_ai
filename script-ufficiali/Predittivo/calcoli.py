@@ -249,10 +249,6 @@ class FinancialCalculator:
             soglia_reddito = self.get_soglia_reddito()
             
             importo_finanziato = self.calcola_importo_finanziato(costo_auto, nuovo_usato, anticipo_perc)
-            print(importo_finanziato)
-            print(nr_rate.iloc[0])
-            print(tan)
-            print("|"*80)
             rata = self.calcola_rata(importo_finanziato, nr_rate.iloc[0], tan)
             sostenibilita = self.calcola_sostenibilita(rata, reddito_disponibile)
             coefficiente_k = self.calcola_coefficiente_K(sostenibilita)
