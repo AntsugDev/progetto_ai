@@ -10,14 +10,14 @@ columnsSimB= ["model_id", "simulation_type_id", "nr_rata","rata", "sostenibilita
 INSERT_MODEL = """INSERT INTO modello ({}) VALUES ({})""".format(getColumns(columns),getVales(columns))
 INSERT_SIMULATION_A = """INSERT INTO simulation ({}) VALUES ({})""".format(getColumns(columnsSimA),getVales(columnsSimA))
 INSERT_SIMULATION_B = """INSERT INTO simulation ({}) VALUES ({})""".format(getColumns(columnsSimB),getVales(columnsSimB))
-SELECT_ID = """SELECT id FROM %s WHERE upper(TESTO) = upper(%s) """
+SELECT_ID = """SELECT id FROM :table WHERE upper(TESTO) = upper(':value') """
 SELECT_TAN =   """ select distinct cast(tan as DECIMAL(10,2)) as tan from model m left join nuovo_usato nu on (nu.id = m.nuovo_usato_id) WHERE upper(testo) = upper(%s) """ 
 SELECT_ALL = """ SELECT
 	cliente,
 	eta,
 	np.testo as neo_patentato,
 	nr_figli,
-	reddito_mensie,
+	reddito_mensile,
 	altre_spese,
 	diff_reddito,
 	s.testo as sesso,
@@ -31,7 +31,17 @@ SELECT_ALL = """ SELECT
 	tan,
 	fa.testo as formula_acquisto,
 	nr_rate,
-	anticipo
+	anticipo,
+	m.importo_finanziato ,
+	rata,
+	m.sostenibilita ,
+	m.coefficiente_k,
+	re,
+	rs,
+	rd,
+	rt,
+	m.decisione_AI ,
+	m.is_simulation 
 FROM
 	model m
 left join neo_patentato np on
@@ -46,4 +56,5 @@ left join nuovo_usato nu on
 	(nu.id = m.nuovo_usato_id)
 left join formula_acquisto fa on
 	(fa.id = m.formula_acquisto_id)
+	
 	; """

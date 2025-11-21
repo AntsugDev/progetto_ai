@@ -56,7 +56,7 @@ class FinancialCalculator:
         - Auto usata: nessun anticipo in prima istanza → importo = costo_auto
         - Auto nuova: con formula a 3 anni → importo = 10% del costo auto
         """
-        if nuovo_usato == "Usata":
+        if nuovo_usato.upper() == "USATO":
             # Auto usata: nessun anticipo in prima istanza
             return costo_auto
         else:
@@ -72,7 +72,7 @@ class FinancialCalculator:
             if nr_rate <= 0 or importo_finanziato <= 0:
                 return 0.0
             
-            tam = tan / 12 / 100  # TAN è in percentuale, convertiamo in decimale
+            tam = tan / 12   # TAN è in percentuale, convertiamo in decimale
             numeratore = importo_finanziato * tam
             denominatore = 1 - ((1 + tam) ** -nr_rate)
             
@@ -229,64 +229,73 @@ class FinancialCalculator:
         return risultato
     
     def calcola_tutti_i_valori(self, dati_cliente):
-        """
-        Calcola tutti i valori per un nuovo cliente
-        """
-        # Estrai dati
-        reddito_mensile = dati_cliente['reddito_mensile']
-        altre_spese = dati_cliente['altre_spese']
-        costo_auto = dati_cliente['costo_auto']
-        nuovo_usato = dati_cliente['nuovo_usato']
-        nr_rate = dati_cliente.get('nr_rate', 36)
-        tan = dati_cliente.get('tan', 5.0)
-        anticipo_perc = dati_cliente.get('anticipo_perc', 0)
-        nr_figli = dati_cliente.get('nr_figli', 0)
-        neo_patentato = dati_cliente.get('neo_patentato', 'No')
+        try:
+            """
+            Calcola tutti i valori per un nuovo cliente
+            """
+            # Estrai dati
+            reddito_mensile = dati_cliente['reddito_mensile'].iloc[0]
+            altre_spese = dati_cliente['altre_spese'].iloc[0]
+            costo_auto = dati_cliente['costo_auto'].iloc[0]
+            nuovo_usato = dati_cliente['nuovo_usato'].iloc[0]
+            nr_rate = dati_cliente.get('nr_rate', 36)
+            tan = self.getTan(nuovo_usato)
+            anticipo_perc = dati_cliente.get('anticipo_perc', 0)
+            nr_figli = dati_cliente.get('nr_figli', 0)
+            neo_patentato = dati_cliente.get('neo_patentato', 'No')
+            
+            # Calcoli sequenziali
+            reddito_disponibile = reddito_mensile - altre_spese
+            soglia_reddito = self.get_soglia_reddito()
+            
+            importo_finanziato = self.calcola_importo_finanziato(costo_auto, nuovo_usato, anticipo_perc)
+            print(importo_finanziato)
+            print(nr_rate.iloc[0])
+            print(tan)
+            print("|"*80)
+            rata = self.calcola_rata(importo_finanziato, nr_rate.iloc[0], tan)
+            sostenibilita = self.calcola_sostenibilita(rata, reddito_disponibile)
+            coefficiente_k = self.calcola_coefficiente_K(sostenibilita)
+            re = self.calcola_re(reddito_disponibile, anticipo_perc, nuovo_usato, soglia_reddito)
+            rs = self.calcola_rs(sostenibilita)
+            rd = self.calcola_rd(nr_figli.iloc[0], neo_patentato.iloc[0])
+            rt, decisione_ai = self.calcola_rt(re, rs, rd, sostenibilita, nuovo_usato)
+            
+            # Calcola simulazione se necessario
+            simulazione = None
+            if decisione_ai == "Revisione con simulazione":
+                simulazione = self.calcola_simulazione(
+                    coefficiente_k, costo_auto, nuovo_usato, tan, nr_rate, reddito_disponibile
+                )
+            
+            # Ritorna tutti i valori calcolati
+            return {
+                'diff_reddito': reddito_disponibile,
+                'importo_finanziato': round(importo_finanziato, 2),
+                'rata': round(rata, 2),
+                'sostenibilita': round(sostenibilita, 3),
+                'coefficiente_K': round(coefficiente_k, 3),
+                're': re,
+                'rs': rs,
+                'rd': rd,
+                'rt': rt,
+                'decisione_AI': decisione_ai,
+                'simulazione': simulazione,
+                'calcoli_completati': True
+            }
+        except Exception as e:
+            print(f"Calcola tutti i valori in eccezione: {e}")
+            raise e;    
         
-        # Calcoli sequenziali
-        reddito_disponibile = reddito_mensile - altre_spese
-        soglia_reddito = self.get_soglia_reddito()
-        
-        importo_finanziato = self.calcola_importo_finanziato(costo_auto, nuovo_usato, anticipo_perc)
-        rata = self.calcola_rata(importo_finanziato, nr_rate, tan)
-        sostenibilita = self.calcola_sostenibilita(rata, reddito_disponibile)
-        coefficiente_k = self.calcola_coefficiente_K(sostenibilita)
-        
-        re = self.calcola_re(reddito_disponibile, anticipo_perc, nuovo_usato, soglia_reddito)
-        rs = self.calcola_rs(sostenibilita)
-        rd = self.calcola_rd(nr_figli, neo_patentato)
-        rt, decisione_ai = self.calcola_rt(re, rs, rd, sostenibilita, nuovo_usato)
-        
-        # Calcola simulazione se necessario
-        simulazione = None
-        if decisione_ai == "Revisione con simulazione":
-            simulazione = self.calcola_simulazione(
-                coefficiente_k, costo_auto, nuovo_usato, tan, nr_rate, reddito_disponibile
-            )
-        
-        # Ritorna tutti i valori calcolati
-        return {
-            'diff_reddito': reddito_disponibile,
-            'importo_finanziato': round(importo_finanziato, 2),
-            'rata': round(rata, 2),
-            'sostenibilita': round(sostenibilita, 3),
-            'coefficiente_K': round(coefficiente_k, 3),
-            're': re,
-            'rs': rs,
-            'rd': rd,
-            'rt': rt,
-            'decisione_AI': decisione_ai,
-            'simulazione': simulazione,
-            'calcoli_completati': True
-        }
-        
-    def getTan(formula):
+    def getTan(self,formula):
        try:
-            conn = Connection()
+            c = Connection()
+            conn = c.conn()
             with  conn.cursor() as cursor:
-                cursor.execute(SELECT_TAN,(formula.upper()))
+                cursor.execute(SELECT_TAN,(formula))
                 row = cursor.fetchone()
-                if row : return row['tan']
+                if row : return float(row['tan'])
                 else: raise ValueError(f"Tan not found for {formula}") 
        except Exception as e:
+            print(f"getTan in eccezione: {e}")
             raise e
