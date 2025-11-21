@@ -1,6 +1,6 @@
 # test per verificare quanto capito fino ad adesso prendendo il mio modello
-from ..Predittivo/querys import SELECT_ALL
-from ..Predittivo/connection import Connection
+from Predittivo.querys import SELECT_ALL
+from Predittivo.connection import Connection
 import pandas as pd
 class ModelCustom:
 
