@@ -90,60 +90,83 @@ class CarPurchasePredictor:
         return df
 
     def prepare_features(self, df):
-        """Prepara le features per il training"""
         print("🔧 Preparazione features...")
-        
+    
         if df.empty:
             raise ValueError("❌ Nessun dato disponibile!")
-        
+    
         X = df.copy()
-        
-        # Features numeriche
+    
+    # 1. CONVERTI PRIMA le colonne numeriche
         numeric_features = [
-            'eta', 'nr_figli', 'reddito_mensie', 'altre_spese', 'diff_reddito',
-            'costo_auto', 'oneri_accessori', 'anticipo', 'tan', 'nr_rate',
-            'importo_finanziato', 'rata', 'sostenibilita', 'coefficiente_K',
-            're', 'rs', 'rd', 'rt'
+        'eta', 'nr_figli', 'reddito_mensie', 'altre_spese', 'diff_reddito',
+        'costo_auto', 'eta_veicolo', 'oneri_accessori', 'anticipo', 'tan',
+        'nr_rate', 'importo_finanziato', 'rata', 'sostenibilita',
+        'coefficiente_K', 're', 'rs', 'rd', 'rt'
         ]
-        
-        # Features categoriche
+    
+        for col in numeric_features:
+            if col in X.columns:
+                X[col] = pd.to_numeric(X[col], errors='coerce')
+    
+    # 2. FEATURE ENGINEERING PRIMA dell'encoding
+    # Crea nuove features numeriche
+        if 'rata' in X.columns and 'diff_reddito' in X.columns:
+            X['sostenibilita'] = X['rata'] / X['diff_reddito']
+    
+        X['reddito_dopo_spese'] = X['reddito_mensie'] - X['altre_spese']
+    
+        if 'anticipo' in X.columns and 'costo_auto' in X.columns:
+            X['rapporto_anticipo_costo'] = X['anticipo'] / X['costo_auto']
+    
+    # 3. ENCODING FEATURES CATEGORICHE - CORRETTO
         categorical_features = [
-            'neo_patentato', 'sesso', 'zona', 'tipologia_auto', 
-            'nuovo_usato', 'formula_acquisto'
+        'neo_patentato', 'sesso', 'zona', 'tipologia_auto', 
+        'nuovo_usato', 'formula_acquisto'
         ]
-        
-        # Encoding categoriche
+    
+        print("🔤 Encoding features categoriche...")
         for feature in categorical_features:
             if feature in X.columns and not X[feature].isnull().all():
-                self.label_encoders[feature] = LabelEncoder()
-                X[feature] = X[feature].fillna('Unknown')
-                X[feature] = self.label_encoders[feature].fit_transform(X[feature].astype(str))
-        
-        # Seleziona colonne disponibili
-        all_features = numeric_features + categorical_features
-        available_features = [col for col in all_features if col in X.columns and not X[col].isnull().all()]
-        
+                try:
+                # ⭐⭐ CORREZIONE CRUCIALE: Fai encoding PRIMA di selezionare le colonne
+                    self.label_encoders[feature] = LabelEncoder()
+                    X[feature] = X[feature].fillna('Unknown')
+                    X[feature] = self.label_encoders[feature].fit_transform(X[feature].astype(str))
+                    print(f"   ✅ {feature} encoded - valori unici: {X[feature].nunique()}")
+                except Exception as e:
+                    print(f"   ❌ Errore encoding {feature}: {e}")
+    
+    # 4. SELEZIONA TUTTE LE FEATURES DISPONIBILI (numeriche + categoriche encoded)
+        all_possible_features = numeric_features + categorical_features + [
+        'sostenibilita', 'reddito_dopo_spese', 'rapporto_anticipo_costo'
+        ]
+    
+        available_features = []
+        for feature in all_possible_features:
+            if feature in X.columns and not X[feature].isnull().all():
+                available_features.append(feature)
+    
         X_final = X[available_features].dropna()
-        
-        # Target
+    
+    # 5. TARGET
         if 'target_decision' in df.columns:
             y = df['target_decision'].loc[X_final.index]
-            
+        
             if len(y) == 0:
                 raise ValueError("❌ Nessun target valido!")
-            
+        
             self.label_encoders['target'] = LabelEncoder()
             y_encoded = self.label_encoders['target'].fit_transform(y)
-            
-            print(f"🎯 Decisioni target:")
-            for decision in self.label_encoders['target'].classes_:
-                count = (y == decision).sum()
-                print(f"   {decision}: {count} occorrenze")
-            
+        
+            print(f"🎯 Target unici: {list(self.label_encoders['target'].classes_)}")
+        
         else:
             raise ValueError("❌ Target non trovato!")
-        
-        print(f"✅ Features: {len(available_features)}, Righe: {len(X_final)}")
+    
+        print(f"✅ Features finali: {len(available_features)}")
+        print(f"📊 Righe finali: {len(X_final)}")
+    
         return X_final, y_encoded, available_features
 
     def train(self, X, y):
@@ -193,7 +216,9 @@ class CarPurchasePredictor:
         """Salva il modello"""
         if not self.is_trained:
             raise ValueError("❌ Nessun modello da salvare!")
-        
+        print("*"*60 +"\n")
+        print(f"Importance={self.feature_importance.head(10)}")
+        print("*"*60 +"\n")
         model_data = {
             'model': self.model,
             'scaler': self.scaler,
