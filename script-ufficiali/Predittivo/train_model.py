@@ -100,7 +100,8 @@ class ModelCustom:
 )
             ])
 
-            joblib.dump(model, '../../file/datamodel.pkl')
+            joblib.dump(model, '../../model/datamodel.pkl')
+            joblib.dump(self.label_encoder, '../../model/label_encoder.pkl')
             print("Modello salvato con successo")
             return model
             

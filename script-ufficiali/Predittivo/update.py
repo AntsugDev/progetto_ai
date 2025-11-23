@@ -107,8 +107,9 @@ class DatabaseUpdater:
                         cursor.execute(INSERT_SIMULATION_B, data_insert_sim_b)
                         self.conn.commit()
 
-                   
+                    return True;
 
         except Exception as e:
-            raise e;
+            print(f"Eccezione create fn:{e}")
+            return False;
     
