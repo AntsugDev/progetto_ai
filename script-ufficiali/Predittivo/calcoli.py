@@ -69,12 +69,15 @@ class FinancialCalculator:
         Formula: Rata = (Importo * TAN/12) / (1 - (1 + TAN/12)^(-nr_rate))
         """
         try:
-            if nr_rate <= 0 or importo_finanziato <= 0:
+            nrRate = nr_rate.iloc[0] if isinstance(nr_rate, pd.Series) else nr_rate
+
+            if nrRate <= 0 or importo_finanziato <= 0:
                 return 0.0
             
+
             tam = tan / 12   # TAN è in percentuale, convertiamo in decimale
             numeratore = importo_finanziato * tam
-            denominatore = 1 - ((1 + tam) ** -nr_rate)
+            denominatore = 1 - ((1 + tam) ** -nrRate)
             
             if denominatore == 0:
                 return 0.0
@@ -177,6 +180,7 @@ class FinancialCalculator:
         Calcola la simulazione quando la decisione è "Revisione con simulazione"
         Basato sul tuo codice PHP
         """
+
         # Calcola Ic (Indice di intensità)
         Ic = k / 1.6
         
@@ -187,7 +191,7 @@ class FinancialCalculator:
         }
         
         # SIMULAZIONE ANTICIPO (solo per auto usata)
-        if nuovo_usato == "Usata":
+        if nuovo_usato.upper() == "USATO":
             anticipo = 0.40 * Ic * costo_auto
             importo_fin_A = costo_auto - anticipo
             rata_A = self.calcola_rata(importo_fin_A, nr_rate, tan)
@@ -216,7 +220,7 @@ class FinancialCalculator:
         }
         
         
-        if nuovo_usato == "Usata" and sostenibilita_A > 0:
+        if nuovo_usato.upper() == "USATO" and sostenibilita_A > 0:
             min_sostenibilita = min(sostenibilita_A, sostenibilita_B)
 
             if min_sostenibilita == sostenibilita_A:

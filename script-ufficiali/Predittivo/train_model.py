@@ -1,257 +1,185 @@
-# train_model.py
-import numpy as np
+# test per verificare quanto capito fino ad adesso prendendo il mio modello
+from querys import SELECT_ALL
+from connection import Connection
+from update import DatabaseUpdater
 import pandas as pd
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, classification_report
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from testing import TestingModel
 import joblib
-import warnings
-import pymysql
-from datetime import datetime
 
-warnings.filterwarnings('ignore')
+class ModelCustom:
 
-class CarPurchasePredictor:
-    """
-    Agente AI predittivo - Versione semplificata per training
-    """
-    
     def __init__(self):
-        self.model = None
-        self.label_encoders = {}
-        self.scaler = StandardScaler()
-        self.is_trained = False
-        self.feature_importance = None
-        
-    class DBConfig:
-        def __init__(self):
-            self.host = "localhost"
-            self.user = "asugamele"
-            self.password = "83Asugamele@"
-            self.database = "projectAI"
-            self.cursorclass = pymysql.cursors.DictCursor
-
-    def load_data_from_db(self):
-        """Carica i dati dal database per il training"""
-        print("📊 Caricamento dati dal database...")
-        
-        db_config = self.DBConfig()
-        conn = pymysql.connect(**db_config.__dict__)
-        
+        c =  Connection()
+        self.classUpdate = DatabaseUpdater()
+        self.conn = c.conn()
+        self.df = pd.DataFrame
+    
+#todo costruire il mio modello secondo i test fatti in questa directory usando OneHotEncoder e Pipelines
+    def getData(self):
         try:
-            query = """
-            SELECT 
-                m.*,
-                np.testo as neo_patentato,
-                s.testo as sesso,
-                z.testo as zona,
-                ta.testo as tipologia_auto,
-                nu.testo as nuovo_usato,
-                fa.testo as formula_acquisto,
-                m.decisione_AI as target_decision
-            FROM model m
-            LEFT JOIN neo_patentato np ON m.neo_patentato_id = np.id
-            LEFT JOIN sesso s ON m.sesso_id = s.id
-            LEFT JOIN zona z ON m.zona_id = z.id
-            LEFT JOIN tipologia_auto ta ON m.tipologia_auto_id = ta.id
-            LEFT JOIN nuovo_usato nu ON m.nuovo_usato_id = nu.id
-            LEFT JOIN formula_acquisto fa ON m.formula_acquisto_id = fa.id
-            WHERE m.decisione_AI IS NOT NULL
-            """
+            rows = None
+            with self.conn.cursor() as cursor:
+                cursor.execute(SELECT_ALL)
+                rows = cursor.fetchall();
+                if not rows:
+                    raise ValueError("Nessun dato trovato")
+                return rows
+        except Exception as e:
+            print(f"Eccezione:{e}")
+            return None
+
+    def create(self):
+        try:
+            df = pd.DataFrame(self.getData(),columns=[
+                'cliente',
+                'eta',
+                'neo_patentato',
+                'nr_figli',
+                'reddito_mensile',
+                'altre_spese',
+                'sesso',
+                'zona',
+                'tipologia_auto',
+                'nuovo_usato',
+                'costo_auto',
+                'eta_veicolo',
+                'anticipo',
+                'formula_acquisto',
+                'nr_rate',
+                'importo_finanziato',
+                'rata',
+                'sostenibilita',
+                'coefficiente_k',
+                're',
+                'rs',
+                'rd',
+                'rt',
+                'decisione_AI',
+                'is_simulation'
+            ])
+            X = df[['eta','neo_patentato','nr_figli','reddito_mensile','altre_spese','sesso','zona','tipologia_auto','nuovo_usato','costo_auto','eta_veicolo','anticipo','formula_acquisto','nr_rate','importo_finanziato','rata','sostenibilita','coefficiente_k','re','rs','rd','rt','is_simulation']]        
+            y_raw = df['decisione_AI']
+
+            # ENCODER TARGET
+            le = LabelEncoder()
+            y = le.fit_transform(y_raw)
+            self.label_encoder = le
+           
+            toConvert = ['neo_patentato','sesso','zona','tipologia_auto','nuovo_usato','formula_acquisto','is_simulation']
+            process = ColumnTransformer(
+               transformers=[
+                   ("cat", OneHotEncoder(handle_unknown="ignore"), toConvert),
+               ],
+               remainder="passthrough"
+            )
+
+            X_train, X_test, y_train, y_test = train_test_split(
+             X, 
+             y, 
+             test_size=0.2,       # 20% test
+             random_state=42     # riproducibilità
+            )
+           
+            model = Pipeline(steps=[
+               ("preprocess", process),
+               ("xgb", XGBClassifier(
+                            n_estimators=300,
+                            learning_rate=0.05,
+                            max_depth=5,
+                            subsample=0.9,
+                            colsample_bytree=0.9,
+                            eval_metric="logloss"
+    )
+)
+            ])
+
+            joblib.dump(model, '../../file/datamodel.pkl')
+            print("Modello salvato con successo")
+            return model
             
-            df = pd.read_sql(query, conn)
-            print(f"✅ Dati caricati: {len(df)} righe")
+
+        except Exception as e:
+            print(f"Eccezione:{e}")
+            return  None
+        
+    def predict(self,model):
+        try:
+            data_tester = pd.DataFrame({
+                'eta': [30],
+                'neo_patentato': ['si'],
+                'nr_figli': [2],
+                'reddito_mensile': [3000],
+                'altre_spese': [500],
+                'sesso': ['uomo'],
+                'zona': ['centro'],
+                'tipologia_auto': ['SUV'],
+                'nuovo_usato': ['usato'],
+                'costo_auto': [35000],
+                'eta_veicolo': [2],
+                'anticipo': [0],
+                'formula_acquisto': ['finanziamento classico auto usata'],
+                'nr_rate': [60]
+            })
+            record, simulazione = self.classUpdate.data_predizione_ai(data_tester)
+
             
-            # Converti colonne numeriche
-            df = self._convert_numeric_columns(df)
+
+            # colonne usate in training
+            cols_training = ['eta','neo_patentato','nr_figli','reddito_mensile','altre_spese',
+                         'sesso','zona','tipologia_auto','nuovo_usato','costo_auto',
+                         'eta_veicolo','anticipo','formula_acquisto','nr_rate',
+                         'importo_finanziato','rata','sostenibilita','coefficiente_k',
+                         're','rs','rd','rt','is_simulation']
+
+            # crea DataFrame con tutte le colonne
+            importance = pd.DataFrame([{
+                'diff_reddito': record.get('diff_reddito'),
+                'rata' : record.get('rata'),
+                'costo_auto': record.get('costo_auto'),
+                'importo_finanziato': record.get('importo_finanziato'),
+                'sostenibilita': record.get('sostenibilita'),
+                'coefficiente_k':record.get('coefficiente_k'),
+                're': record.get('re'),
+                'rs':record.get('rs'),
+                'rd': record.get('rd'),
+                'rt':record.get('rt')
+            }])
+            print("-"*30+"Dati rilevanti:"+"-"*30)
+            print(importance)
+            print("-"*60+"\n\n")
             
-            return df
+            
+            df_pred = pd.DataFrame(columns=cols_training)
+
+            for col in df_pred.columns:
+                if col in record:
+                    df_pred.at[0, col] = record[col]
+                else:
+                    df_pred.at[0, col] = 0  # valore default per colonne mancanti
+
+            # predizione
+            p = model.predict(df_pred)
+            p_label = self.label_encoder.inverse_transform(p)
+            print("-"*30+"Predizione:"+"-"*30)
+            print(p_label[0])
+            print("-"*60+"\n\n")
+            if simulazione:
+                print("-"*30+"Simulazione:"+"-"*30)
+                print(simulazione)
+                print("-"*60+"\n\n")
             
         except Exception as e:
-            print(f"❌ Errore nel caricamento dati: {e}")
-            return pd.DataFrame()
-        finally:
-            conn.close()
-
-    def _convert_numeric_columns(self, df):
-        """Converti colonne numeriche"""
-        numeric_columns = [
-            'eta', 'nr_figli', 'reddito_mensie', 'altre_spese', 'diff_reddito',
-            'costo_auto', 'eta_veicolo', 'oneri_accessori', 'anticipo', 'tan',
-            'nr_rate', 'importo_finanziato', 'rata', 'sostenibilita', 
-            'coefficiente_K', 're', 'rs', 'rd', 'rt'
-        ]
-        
-        for col in numeric_columns:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
-        
-        return df
-
-    def prepare_features(self, df):
-        print("🔧 Preparazione features...")
-    
-        if df.empty:
-            raise ValueError("❌ Nessun dato disponibile!")
-    
-        X = df.copy()
-    
-    # 1. CONVERTI PRIMA le colonne numeriche
-        numeric_features = [
-        'eta', 'nr_figli', 'reddito_mensie', 'altre_spese', 'diff_reddito',
-        'costo_auto', 'eta_veicolo', 'oneri_accessori', 'anticipo', 'tan',
-        'nr_rate', 'importo_finanziato', 'rata', 'sostenibilita',
-        'coefficiente_K', 're', 'rs', 'rd', 'rt'
-        ]
-    
-        for col in numeric_features:
-            if col in X.columns:
-                X[col] = pd.to_numeric(X[col], errors='coerce')
-    
-    # 2. FEATURE ENGINEERING PRIMA dell'encoding
-    # Crea nuove features numeriche
-        if 'rata' in X.columns and 'diff_reddito' in X.columns:
-            X['sostenibilita'] = X['rata'] / X['diff_reddito']
-    
-        X['reddito_dopo_spese'] = X['reddito_mensie'] - X['altre_spese']
-    
-        if 'anticipo' in X.columns and 'costo_auto' in X.columns:
-            X['rapporto_anticipo_costo'] = X['anticipo'] / X['costo_auto']
-    
-    # 3. ENCODING FEATURES CATEGORICHE - CORRETTO
-        categorical_features = [
-        'neo_patentato', 'sesso', 'zona', 'tipologia_auto', 
-        'nuovo_usato', 'formula_acquisto'
-        ]
-    
-        print("🔤 Encoding features categoriche...")
-        for feature in categorical_features:
-            if feature in X.columns and not X[feature].isnull().all():
-                try:
-                # ⭐⭐ CORREZIONE CRUCIALE: Fai encoding PRIMA di selezionare le colonne
-                    self.label_encoders[feature] = LabelEncoder()
-                    X[feature] = X[feature].fillna('Unknown')
-                    X[feature] = self.label_encoders[feature].fit_transform(X[feature].astype(str))
-                    print(f"   ✅ {feature} encoded - valori unici: {X[feature].nunique()}")
-                except Exception as e:
-                    print(f"   ❌ Errore encoding {feature}: {e}")
-    
-    # 4. SELEZIONA TUTTE LE FEATURES DISPONIBILI (numeriche + categoriche encoded)
-        all_possible_features = numeric_features + categorical_features + [
-        'sostenibilita', 'reddito_dopo_spese', 'rapporto_anticipo_costo'
-        ]
-    
-        available_features = []
-        for feature in all_possible_features:
-            if feature in X.columns and not X[feature].isnull().all():
-                available_features.append(feature)
-    
-        X_final = X[available_features].dropna()
-    
-    # 5. TARGET
-        if 'target_decision' in df.columns:
-            y = df['target_decision'].loc[X_final.index]
-        
-            if len(y) == 0:
-                raise ValueError("❌ Nessun target valido!")
-        
-            self.label_encoders['target'] = LabelEncoder()
-            y_encoded = self.label_encoders['target'].fit_transform(y)
-        
-            print(f"🎯 Target unici: {list(self.label_encoders['target'].classes_)}")
-        
-        else:
-            raise ValueError("❌ Target non trovato!")
-    
-        print(f"✅ Features finali: {len(available_features)}")
-        print(f"📊 Righe finali: {len(X_final)}")
-    
-        return X_final, y_encoded, available_features
-
-    def train(self, X, y):
-        """Allena il modello"""
-        if len(X) < 10:
-            raise ValueError(f"❌ Dati insufficienti: {len(X)} righe")
-        
-        print("🎯 Allenamento modello...")
-        
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
-        )
-        
-        # Scaling
-        X_train_scaled = self.scaler.fit_transform(X_train)
-        X_test_scaled = self.scaler.transform(X_test)
-        
-        # Modello
-        self.model = RandomForestClassifier(
-            n_estimators=100,
-            max_depth=10,
-            min_samples_split=5,
-            random_state=42,
-            n_jobs=-1
-        )
-        
-        self.model.fit(X_train_scaled, y_train)
-        self.is_trained = True
-        
-        # Valutazione
-        y_pred = self.model.predict(X_test_scaled)
-        accuracy = accuracy_score(y_test, y_pred)
-        
-        # Feature Importance
-        self.feature_importance = pd.DataFrame({
-            'feature': X.columns,
-            'importance': self.model.feature_importances_
-        }).sort_values('importance', ascending=False)
-        
-        print("\n📈 RISULTATI TRAINING:")
-        print(f"✅ Accuratezza: {accuracy:.1%}")
-        print(classification_report(y_test, y_pred, target_names=self.label_encoders['target'].classes_))
-        
-        return accuracy
-
-    def save_model(self, filename='../../file/model.pkl'):
-        """Salva il modello"""
-        if not self.is_trained:
-            raise ValueError("❌ Nessun modello da salvare!")
-        print("*"*60 +"\n")
-        print(f"Importance={self.feature_importance.head(10)}")
-        print("*"*60 +"\n")
-        model_data = {
-            'model': self.model,
-            'scaler': self.scaler,
-            'label_encoders': self.label_encoders,
-            'feature_importance': self.feature_importance,
-            'training_date': datetime.now()
-        }
-        
-        joblib.dump(model_data, filename)
-        print(f"💾 Modello salvato: {filename}")
-
-def main():
-    """Main training"""
-    print("🚀 TRAINING MODELLO AI")
-    print("=" * 50)
-    
-    predictor = CarPurchasePredictor()
-    df = predictor.load_data_from_db()
-    
-    if df.empty:
-        print("❌ Nessun dato per il training")
-        return
-    
-    try:
-        X, y, features = predictor.prepare_features(df)
-        accuracy = predictor.train(X, y)
-        predictor.save_model('../../file/model.pkl')
-        
-        print("\n🎉 TRAINING COMPLETATO!")
-        print("📁 Usa 'test_cliente.py' per testare nuovi clienti")
-        
-    except Exception as e:
-        print(f"❌ Errore training: {e}")
+            print(f"Eccezione:{e}")
+            return  None
 
 if __name__ == "__main__":
-    main()
+    m = ModelCustom()   
+    model = m.create()      
+   # m.predict(model)
