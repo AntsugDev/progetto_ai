@@ -6,6 +6,9 @@ from xgboost import XGBRegressor
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, r2_score
+import json
+from datetime import datetime
+import os
 
 MAX_RATE = 72
 
@@ -113,18 +116,33 @@ class FinancialEstimated:  # Corretto il nome
         importo_rata = y_pred[:, 0]
         sostenibilita = y_pred[:, 1]
         
-        print("-" * 30 + "New Predizione" + "-" * 30)
-        print(f"Importo Rata:   {round(importo_rata[0], 2)} €")
-        print(f"Sostenibilità:   {round(sostenibilita[0]*100, 2)} %")
-        print(f"Decisione AI:    {self.decisionAI(sostenibilita[0])}")
-        if sostenibilita[0] >= 0.35 :
-            print("Revisione in corso attendere ... \n\n")
-        
+        result = {
+            'data' : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'title': 'Predizione finanziara test',
+            'importo_rata' : float(round(importo_rata[0], 2)),
+            'sostenibilita' : float(round(sostenibilita[0]*100, 2)),
+            'decisione_ai' : self.decisionAI(sostenibilita[0])
+        }
         revision = self.revision(data, sostenibilita[0])
         if revision:
-            print("-" * 30 + "Revisione" + "-" * 30)
-            print(f"Rate originali:{data['nr_rate']}")
-            print(pd.DataFrame([revision]))
+            result['revision'] = {
+                'nr_rate': revision['nr_rate'],
+                'importo_rata': float(round(revision['importo_rata'], 2)),
+                'sostenibilita': float(round(revision['sostenibilita']*100, 2))
+            }
+
+        output_dir = '../../../data_result_predict/'
+        os.makedirs(output_dir, exist_ok=True) 
+        
+        filename = f"predizione_fin_{datetime.now().strftime('%Y%m%d%H%M%S')}.json"
+        filepath = os.path.join(output_dir, filename)
+        
+        try:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(result, f, indent=2, ensure_ascii=False)
+            print(f"Previsione terminata e salvata in: {filepath}")
+        except Exception as e:
+            print(f"Errore nel salvataggio del file: {e}")   
         
 
 if __name__ == '__main__':
