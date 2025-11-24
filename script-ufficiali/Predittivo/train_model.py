@@ -96,9 +96,11 @@ class ModelCustom:
                             subsample=0.9,
                             colsample_bytree=0.9,
                             eval_metric="logloss"
-    )
-)
+                )
+            )
             ])
+
+            model.fit(X_train, y_train)
 
             joblib.dump(model, '../../model/datamodel.pkl')
             joblib.dump(self.label_encoder, '../../model/label_encoder.pkl')

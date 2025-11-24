@@ -5,6 +5,7 @@ from calcoli import FinancialCalculator
 from connection import Connection
 from querys import INSERT_MODEL,INSERT_SIMULATION_A,INSERT_SIMULATION_B,SELECT_ID
 import uuid
+import numpy as np
 
 class DatabaseUpdater:
     """
@@ -66,50 +67,96 @@ class DatabaseUpdater:
         except Exception as e:                
             raise e;
 
+    def convert_numpy_types(self,data_dict):
+        """Converte i tipi numpy in tipi Python nativi"""
+        converted = {}
+        for key, value in data_dict.items():
+            if value is None:
+                converted[key] = None
+            elif hasattr(value, 'item'):  # Per tipi numpy
+                converted[key] = value.item()
+            elif isinstance(value, (np.integer, np.floating)):
+                converted[key] = value.item()
+            else:
+                converted[key] = value
+        return converted        
+
     def create(self,data):
         try:
-            calcola = self.data_predizione_ai(data)
+            calcola,simulazione = self.data_predizione_ai(data)
+            
             if calcola :
                 with self.conn.cursor() as cursor:
-                    cursor.execute(INSERT_MODEL, calcola)
-                self.conn.commit()
-                model_id = cursor.lastrowid
-                if calcola['simulazione']:
-                    if calcola['simulazione']['simulazione_anticipo_solo_auto_usata']:
-                        simA = calcola['simulazione']['simulazione_anticipo_solo_auto_usata']
-                        data_insert_sim_a={
-                            'model_id': model_id,
-                            'simulation_type_id': self.getId('simulation_type', 'Simulazione di anticipo per auto usata'),
-                            'anticipo' : simA['anticipo'],
-                            'importo_finanziamento': sim['importo_fin'],
-                            'importo_rata': simA['importo_rata'],
-                            'sosteibilita':simA['sostenibilita'],
-                            'decisione': simA['decisione_finale'],
-                            'decision_ai': calcola['simulazione']['soluzione_consigliata'] if calcola['simulazione']['soluzione_consigliata'] else NULL
-                            
-                            
-                        }
-                        cursor.execute(INSERT_SIMULATION_A, data_insert_sim_a)
-                        self.conn.commit()
-                    if calcola['simulazione']['simulazione_nr_rate']:
-                        simB = calcola['simulazione']['simulazione_nr_rate']
-                        data_insert_sim_b={
-                            'model_id': model_id,
-                            'simulation_type_id': self.getId('simulation_type', 'Simulazione di aumento numero di rate'),
-                            'nr_rata' : simB['nr_rata_new'],
-                            'rata': simB['importo_rata'],
-                            'sosteibilita':simB['sostenibilita'],
-                            'decisione': simB['decisione_finale'],
-                            'decision_ai': calcola['simulazione']['soluzione_consigliata'] if calcola['simulazione']['soluzione_consigliata'] else NULL
-                            
-                            
-                        }
+                    record_values = self.convert_numpy_types(calcola)
+                    cursor.execute(INSERT_MODEL, (
+                    record_values['cliente'],
+                    record_values['eta'],
+                    record_values['neo_patentato_id'],
+                    record_values['nr_figli'],
+                    record_values['reddito_mensile'],
+                    record_values['altre_spese'],
+                    record_values['diff_reddito'],
+                    record_values['sesso_id'],
+                    record_values['zona_id'],
+                    record_values['tipologia_auto_id'],
+                    record_values['nuovo_usato_id'],
+                    record_values['costo_auto'],
+                    record_values['eta_veicolo'],
+                    record_values['oneri_accessori'],
+                    record_values['anticipo'],
+                    record_values['tan'],
+                    record_values['formula_acquisto_id'],
+                    record_values['nr_rate'],
+                    record_values['importo_finanziato'],
+                    record_values['rata'],
+                    record_values['sostenibilita'],
+                    record_values['coefficiente_k'],
+                    record_values['re'],
+                    record_values['rs'],
+                    record_values['rd'],
+                    record_values['rt'],
+                    record_values['decisione_ai'],
+                    record_values['is_simulation']
+                ))
+                    self.conn.commit()
+                    model_id = cursor.lastrowid
+
+                    if simulazione:
+                        simulation_covert = self.convert_numpy_types(simulazione)
+                        if simulation_covert['simulazione_anticipo_solo_auto_usata']:
+                            simA = simulation_covert['simulazione_anticipo_solo_auto_usata']
+                            data_insert_sim_a=(
+                                 model_id,
+                                 self.getId('simulation_type', 'Simulazione di anticipo per auto usata'),
+                                 simA['anticipo'],
+                                 simA['importo_fin'],
+                                 simA['importo_rata'],
+                                 simA['sostenibilita'],
+                                 simA['decisione_finale'],
+                                 simulation_covert['soluzione_consigliata'] if simulation_covert['soluzione_consigliata'] else None
+                            )
+                            cursor.execute(INSERT_SIMULATION_A, data_insert_sim_a)
+                            self.conn.commit()
+                        if simulation_covert['simulazione_nr_rate']:   
+                            simB = simulation_covert['simulazione_nr_rate']
+                            data_insert_sim_b=(
+                                 model_id,
+                                 self.getId('simulation_type', 'Simulazione di aumento numero di rate'),
+                                 simB['nr_rata_new'].iloc[0] if isinstance(simB['nr_rata_new'], pd.Series) else simB['nr_rata_new'] ,
+                                 simB['importo_rata'],
+                                 simB['sostenibilita'],
+                                 simB['decisione_finale'],
+                                simulation_covert['soluzione_consigliata'] if simulation_covert['soluzione_consigliata'] else None
+                        )
                         cursor.execute(INSERT_SIMULATION_B, data_insert_sim_b)
                         self.conn.commit()
 
-                    return True;
+                return True;
+            else:
+                raise ValueError("Error create")    
 
         except Exception as e:
             print(f"Eccezione create fn:{e}")
+            self.conn.rollback() 
             return False;
     
