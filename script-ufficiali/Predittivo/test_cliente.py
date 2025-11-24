@@ -2,12 +2,14 @@ from update import DatabaseUpdater
 import joblib
 import pandas as pd
 from sklearn.preprocessing import  LabelEncoder
+from retraining import RetrainingManager
 
 class Predict:
     def __init__(self):
         self.classUpdate = DatabaseUpdater()
         self.model = joblib.load("../../model/datamodel.pkl")
         self.label_encoder = joblib.load("../../model/label_encoder.pkl")
+        self.retraining_manager = RetrainingManager(10,2)
 
     def main(self):
         try:
@@ -78,7 +80,9 @@ class Predict:
             status = self.classUpdate.create(data_tester)
             if not status:
                 raise Exception("Errore durante la creazione del record")
-            else : print("Record creato con successo")
+            else : 
+                self.retraining_manager.cliente_aggiunto()
+                print("Record creato con successo")
 
         except Exception as e:
             print(f"Eccezione:{e}")
