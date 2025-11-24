@@ -4,7 +4,7 @@ import uuid
 
 try:
    
-    data = pd.read_csv("../file/datamodel.csv")
+    data = pd.read_csv("../../file/datamodel.csv")
 
     # 🔥 Converti automaticamente tutte le colonne numeriche con virgola
     for col in ["reddito_mensile_netto", "altre_spese", "costo_auto", "anticipo", "tan"]:
@@ -32,7 +32,7 @@ try:
         cursor.execute(
             """
             INSERT INTO projectAI.model
-            (cliente, eta, neo_patentato_id, nr_figli, reddito_mensie, altre_spese, diff_reddito, sesso_id, zona_id, tipologia_auto_id, nuovo_usato_id, costo_auto, eta_veicolo, oneri_accessori, anticipo, tan, formula_acquisto_id, nr_rate)
+            (cliente, eta, neo_patentato_id, nr_figli, reddito_mensile, altre_spese, diff_reddito, sesso_id, zona_id, tipologia_auto_id, nuovo_usato_id, costo_auto, eta_veicolo, oneri_accessori, anticipo, tan, formula_acquisto_id, nr_rate)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """,
             (
