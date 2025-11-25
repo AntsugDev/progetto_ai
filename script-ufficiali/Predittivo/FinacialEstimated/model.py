@@ -49,37 +49,57 @@ class FinancialEstimated:  # Corretto il nome
         if sostenibilita <= 0.35:
             return "Accettato"
         else:
-            return "Condizioni da rivedere, perchè si è superato la soglia di rischio"        
+            return "Condizioni da rivedere, perchè si è superato la soglia di rischio"  
+    def calcola_rata(self,taeg, importo_fin, nr_rate):
+        tam = taeg / 12
+        importo_rata = (importo_fin*tam)/((1-(1+tam)**(-nr_rate)))
+        return importo_rata
+    def calcola_sostenibilita(self, rata, reddito):
+        sostenibilita = rata / reddito
+        return sostenibilita;    
+                      
 
     def revision(self,data,sostenibilita):
+        revision = []
         if(sostenibilita >= 0.35):
            
-            revision = []    
             for i in range(int(data['nr_rate'])+1, MAX_RATE):
                 data_cp = data.copy()
-                data_cp['nr_rate'] = i
                 diff_reddito, taeg = self.calcola(data_cp)
-                data_cp['diff_reddito'] = diff_reddito
-                data_cp['taeg'] = taeg
-            
-                model = self.model()
-                p = model.predict(pd.DataFrame([data_cp],columns=['reddito', 'altre_spese', 'diff_reddito', 'request', 'taeg', 'nr_rate']))
-                importo_rata = p[:, 0]
-                sostenibilita = p[:, 1]
-                if(sostenibilita[0] <= 0.35):
+
+                importo_rata = self.calcola_rata(taeg, data_cp['request'], i)
+                sostenibilita = self.calcola_sostenibilita(importo_rata, diff_reddito)
+
+                            
+                if(sostenibilita <= 0.35):
                     revision.append({
                     'nr_rate': i,
-                    'importo_rata': importo_rata[0],
-                    'sostenibilita': sostenibilita[0]
+                    'importo_rata': importo_rata,
+                    'sostenibilita': sostenibilita
                 })
-            if len(revision) == 0:
-                return None
+        if len(revision) == 0:
+            return None
+        
         return min(revision, key=lambda x: x['sostenibilita'])    
 
 
     def model(self):
         df = self.frame()
         X = df[['reddito', 'altre_spese', 'diff_reddito', 'request', 'taeg', 'nr_rate']]
+        
+        df['importo_rata'] = df.apply(
+            lambda row: self.calcola_rata(
+                row['taeg'], row['request'], row['nr_rate']
+            ), 
+            axis=1
+        )
+        df['sostenibilita'] = df.apply(
+            lambda row: self.calcola_sostenibilita(
+                row['importo_rata'], row['diff_reddito']
+            ), 
+            axis=1
+        )
+
         y = df[['importo_rata', 'sostenibilita']]
         
         X_train, X_test, y_train, y_test = train_test_split(
@@ -119,6 +139,8 @@ class FinancialEstimated:  # Corretto il nome
         result = {
             'data' : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'title': 'Predizione finanziara test',
+            'reddito_netto':diff_reddito,
+            'importo_da_fin': data['request'],
             'importo_rata' : float(round(importo_rata[0], 2)),
             'sostenibilita' : float(round(sostenibilita[0]*100, 2)),
             'decisione_ai' : self.decisionAI(sostenibilita[0])
@@ -131,18 +153,7 @@ class FinancialEstimated:  # Corretto il nome
                 'sostenibilita': float(round(revision['sostenibilita']*100, 2))
             }
 
-        output_dir = '../../../data_result_predict/'
-        os.makedirs(output_dir, exist_ok=True) 
         
-        filename = f"predizione_fin_{datetime.now().strftime('%Y%m%d%H%M%S')}.json"
-        filepath = os.path.join(output_dir, filename)
-        
-        try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(result, f, indent=2, ensure_ascii=False)
-            print(f"Previsione terminata e salvata in: {filepath}")
-        except Exception as e:
-            print(f"Errore nel salvataggio del file: {e}")   
         
 
 if __name__ == '__main__':

@@ -1,0 +1,14 @@
+{
+  "data": "2025-11-25 12:13:43",
+  "title": "Predizione finanziara test",
+  "reddito_netto": 900,
+  "importo_da_fin": 10000,
+  "importo_rata": 436.5199890136719,
+  "sostenibilita": 40.290000915527344,
+  "decisione_ai": "Condizioni da rivedere, perchè si è superato la soglia di rischio",
+  "revision": {
+    "nr_rate": 71,
+    "importo_rata": 178.87,
+    "sostenibilita": 19.87
+  }
+}
