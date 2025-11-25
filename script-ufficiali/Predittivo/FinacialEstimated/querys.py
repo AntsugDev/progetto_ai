@@ -1,13 +1,12 @@
 INSERT_PREVISIONING = """
 INSERT INTO previsioning (
-     reddito, 
-     importo_fin, 
-     revision_nr_rata, 
-     revision_importo_rata, 
-     revision_sostenibilita, 
-     revision_prevision
-) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+     reddito, importo_fin, importo_rata, sostenibilita, decision, revision_id
+) VALUES (%s, %s, %s, %s, %s, %s)
 """
+
+INSERT_REVISION = """ INSERT INTO revisions (
+     nr_rata, importo_rata, sostenibilita
+) VALUES (%s, %s, %s) """
 
 UPDATE_PREVISIONING = """ UPDATE previsioning SET is_accetable = %s WHERE id = %s """
 

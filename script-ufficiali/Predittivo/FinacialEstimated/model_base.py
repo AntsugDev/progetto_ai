@@ -1,6 +1,11 @@
 from connection import ConnectionFe
 from calcoli import Calcoli
 import joblib
+from decimal import Decimal
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.multioutput import MultiOutputRegressor
+from xgboost import XGBRegressor
 
 class ModelBase:
     def __init__(self):
@@ -60,6 +65,10 @@ class ModelBase:
         )
 
         multi_model.fit(X_train, y_train)
-        joblib.dump(multi_model, '../../model/model_fe.pkl')
-        return multi_model        
+        joblib.dump(multi_model, '../../../model/model_fe.pkl')
+           
+
+if __name__ == '__main__':
+    m = ModelBase()
+    m.model()            
        
