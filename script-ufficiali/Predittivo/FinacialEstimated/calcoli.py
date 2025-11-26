@@ -1,4 +1,5 @@
 IMPORTO_BASE = float(200)
+import pandas as pd
 class Calcoli:
     def __init__(self):
         pass
@@ -21,5 +22,16 @@ class Calcoli:
     def calcola_sostenibilita(self, rata, reddito):
         sostenibilita = rata / reddito
         return sostenibilita;   
-
-         
+    def rapporto_spese_reddito(self, altre_spese, reddito):
+        rapporto = altre_spese / reddito
+        return rapporto    
+    def rata_for_year(self,nr_rate):
+        return nr_rate / 12   
+    def sostenibilita_request(self, request,reddito):
+        return request / reddito
+    def rischio(self,taeg,reddito,request):
+        return taeg*self.sostenibilita_request(request,reddito)         
+    def rapp_reddito_rata(self, reddito, rata):
+        return (reddito / rata)
+    def fascia_reddito(self,reddito):
+        return pd.cut(reddito, bins=[0, 1000,2000,3000,4000,5000], labels=[1,2,3,4,5])     

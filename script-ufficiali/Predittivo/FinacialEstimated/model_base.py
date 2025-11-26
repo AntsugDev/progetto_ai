@@ -1,4 +1,4 @@
-from connection import ConnectionFe
+from connectionFe import ConnectionFe
 from calcoli import Calcoli
 import joblib
 from decimal import Decimal
@@ -6,6 +6,8 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.multioutput import MultiOutputRegressor
 from xgboost import XGBRegressor
+from valutazione import Valutazione
+from clearData import ClearData
 
 class ModelBase:
     def __init__(self):
@@ -34,21 +36,9 @@ class ModelBase:
 
     def model(self):
         df = self.frame()
-        X = df[['reddito', 'altre_spese', 'diff_reddito', 'request', 'taeg', 'nr_rate']]
-        
-        df['importo_rata'] = df.apply(
-            lambda row: self.calcoli.calcola_rata(
-                row['taeg'], row['request'], row['nr_rate']
-            ), 
-            axis=1
-        )
-        df['sostenibilita'] = df.apply(
-            lambda row: self.calcoli.calcola_sostenibilita(
-                row['importo_rata'], row['diff_reddito']
-            ), 
-            axis=1
-        )
 
+        clear = ClearData(df)
+        X = clear.clear()
         y = df[['importo_rata', 'sostenibilita']]
         
         X_train, X_test, y_train, y_test = train_test_split(
@@ -65,6 +55,9 @@ class ModelBase:
         )
 
         multi_model.fit(X_train, y_train)
+        val = Valutazione(multi_model, X_test, y_test)
+        val.evaluate()
+
         joblib.dump(multi_model, '../../../model/model_fe.pkl')
            
 
