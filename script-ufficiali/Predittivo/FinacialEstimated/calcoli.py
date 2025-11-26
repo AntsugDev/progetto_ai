@@ -1,3 +1,4 @@
+IMPORTO_BASE = float(200)
 class Calcoli:
     def __init__(self):
         pass
@@ -19,4 +20,6 @@ class Calcoli:
         return importo_rata
     def calcola_sostenibilita(self, rata, reddito):
         sostenibilita = rata / reddito
-        return sostenibilita;    
+        return sostenibilita;   
+
+         

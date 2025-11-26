@@ -1,11 +1,13 @@
 import joblib
 import pandas as pd
 from connectionFe import ConnectionFe
-from querys import INSERT_REVISION
+from querys import INSERT_REVISION , ALL_PREVISIONING
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from calcoli import Calcoli
+from sklearn.model_selection import train_test_split
+from xgboost import XGBClassifier
 
 MAX_RATE = 72
 
@@ -21,7 +23,7 @@ class ModelRevision:
     def revision(self):
         revision = []
        
-        if(self.sostenibilita >= 0.35):
+        if(self.sostenibilita >= 0.35 and self.data):
             print(f"sostenibilita: {self.sostenibilita}")
             exit()
             for i in range(int(self.data['nr_rate'])+1, MAX_RATE):
@@ -49,9 +51,6 @@ class ModelRevision:
 
     def migliore_scelta(self):
         revision = self.revision()
-        print(revision)
-        exit()
-        #self.model(revision)
         if revision:
             solution = min(revision, key=lambda x: x['sostenibilita'])
             with self.cursor as cursor:
@@ -63,33 +62,42 @@ class ModelRevision:
     def get_sostenibilita(self,sostenibilita):
         return 'Accettabile' if sostenibilita <= 0.35 else 'Non accettabile'    
 
-    def model(self,revision):
-        data = pd.DataFrame([revision])
-        X = data[['reddito','importo_fin','nr_rate','importo_rata','sostenibilita','prevision']]
-        process = ColumnTransformer(
-            transformers=[
-                ('rs', OneHotEncoder(handle_unknown="ignore"), ['prevision']),
-                
-            ],
-            remainder="passthrough"
-        )
+    def model(self):
 
-        y = data['is_accetable']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        model = Pipeline(
-            steps=[
-               ("preprocess", process),
-               ("xgb", XGBClassifier(
-                            n_estimators=300,
-                            learning_rate=0.05,
-                            max_depth=5,
-                            subsample=0.9,
-                            colsample_bytree=0.9,
-                            eval_metric="logloss"
-                )
+        with self.cursor as cursor:
+            cursor.execute(ALL_PREVISIONING)
+            revision = cursor.fetchall()
+            data = pd.DataFrame(revision)
+            X = data[['reddito','importo_fin','importo_rata','sostenibilita','decision','is_accetable']]
+            process = ColumnTransformer(
+                transformers=[
+                    ('rs', OneHotEncoder(handle_unknown="ignore"), ['is_accetable','decision']),
+
+                ],
+                remainder="passthrough"
             )
-            ]
-        )
-        model.fit(X_train, y_train)
-        joblib.dump(model, '../../model/model_revision.pkl')
-        return model
+
+            y = data['is_accetable']
+            #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42,stratify=y)
+            model = Pipeline(
+                steps=[
+                   ("preprocess", process),
+                   ("xgb", XGBClassifier(
+                                n_estimators=300,
+                                learning_rate=0.05,
+                                max_depth=5,
+                                subsample=0.9,
+                                colsample_bytree=0.9,
+                                eval_metric="logloss"
+                    )
+                )
+                ]
+            )
+            model.fit(X, y)
+            joblib.dump(model, '../../model/model_revision.pkl')
+            return model
+
+
+if __name__ == '__main__':
+    model = ModelRevision(0.35, {})
+    model.model()
