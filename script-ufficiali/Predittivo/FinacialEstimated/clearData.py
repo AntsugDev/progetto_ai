@@ -9,7 +9,7 @@ class ClearData:
     
     def clear(self):
         df = self.data.copy()
-        df.fillna(0, inplace=True)
+        df = df.fillna(0).infer_objects(copy=False)
         df['diff_reddito']  = df['diff_reddito'].clip(lower=0)
         df['altre_spese']   = df['altre_spese'].clip(lower=0, upper=df['reddito'])
         #--miglioramenti--

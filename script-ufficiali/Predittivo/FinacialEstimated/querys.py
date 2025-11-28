@@ -22,3 +22,4 @@ VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) """
 
 
 CALL_LAST_VERSION = """ SELECT * FROM model_versions WHERE created_at = (SELECT MAX(created_at) FROM model_versions) """
+SELECT_ALL_VERSION = """ SELECT * FROM model_versions """
