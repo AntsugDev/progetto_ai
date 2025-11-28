@@ -23,7 +23,7 @@ class ClearData:
         )
         df['rischio'] = df.apply(lambda row: self.calcoli.rischio(row['taeg'],row['diff_reddito'],row['request']),axis=1)
         df['rapp_reddito_rata'] = df.apply(lambda row: self.calcoli.rapp_reddito_rata(row['diff_reddito'], row['nr_rate']),axis=1)
-        #df['fascia_reddito'] = pd.cut(df['reddito'], bins=[0, 1000,2000,3000,4000,5000], labels=[1,2,3,4,5]) 
+        df['fascia_reddito'] = df.apply(lambda row: self.calcoli.fascia_reddito(row['reddito']),axis=1) 
         #---------------
         df['importo_rata'] = df.apply(
             lambda row: self.calcoli.calcola_rata(
@@ -38,6 +38,6 @@ class ClearData:
             axis=1
         )
 
-        X = df[['reddito', 'altre_spese', 'diff_reddito', 'request', 'taeg', 'nr_rate', 'rapporto_spese_reddito', 'importo_rata','sostenibilita','nr_rate_year','sost_request_reddito','rischio','rapp_reddito_rata']]
+        X = df[['reddito', 'altre_spese', 'diff_reddito', 'request', 'taeg', 'nr_rate', 'rapporto_spese_reddito', 'importo_rata','sostenibilita','nr_rate_year','sost_request_reddito','rischio','rapp_reddito_rata','fascia_reddito']]
         
         return X

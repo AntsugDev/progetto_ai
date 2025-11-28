@@ -34,3 +34,5 @@ class Valutazione:
         print(f" RMSE = {rmse_sost:.4f}")
         print(f" R²   = {r2_sost:.4f}")
         print("==========================================================\n")
+
+        return mae_rata, rmse_rata, r2_rata, mae_sost, rmse_sost, r2_sost

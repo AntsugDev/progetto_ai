@@ -34,4 +34,13 @@ class Calcoli:
     def rapp_reddito_rata(self, reddito, rata):
         return (reddito / rata)
     def fascia_reddito(self,reddito):
-        return pd.cut(reddito, bins=[0, 1000,2000,3000,4000,5000], labels=[1,2,3,4,5])     
+        if reddito <= 1000:
+            return 1
+        elif reddito <= 2000:
+            return 2
+        elif reddito <= 3000:
+            return 3
+        elif reddito <= 4000:
+            return 4
+        else:
+            return 5    
