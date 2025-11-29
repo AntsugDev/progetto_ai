@@ -21,5 +21,5 @@ VERSION_MODEL = """ INSERT INTO model_versions
 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) """
 
 
-CALL_LAST_VERSION = """ SELECT * FROM model_versions WHERE created_at = (SELECT MAX(created_at) FROM model_versions) """
+CALL_LAST_VERSION = """ SELECT model_path FROM model_versions WHERE created_at = (SELECT MAX(created_at) FROM model_versions) """
 SELECT_ALL_VERSION = """ SELECT * FROM model_versions """

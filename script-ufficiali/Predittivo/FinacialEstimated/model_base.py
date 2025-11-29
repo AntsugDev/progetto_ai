@@ -3,7 +3,7 @@ from calcoli import Calcoli
 import joblib
 from decimal import Decimal
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.multioutput import MultiOutputRegressor
 from xgboost import XGBRegressor
 from valutazione import Valutazione
@@ -71,6 +71,9 @@ class ModelBase:
         )
 
         multi_model.fit(X_train, y_train)
+        #scores = cross_val_score(multi_model, X_train, y_train, cv=5, scoring='accuracy')
+        #print(f"Accuracy media: {scores.mean():.3f} (+/- {scores.std() * 2:.3f})")
+
         #Tuning utile si, ma sempre da vedere se il modello migliora
         #multi_model = self.tuning.tuning(X_train, y_train)
         val = Valutazione(multi_model, X_test, y_test)
