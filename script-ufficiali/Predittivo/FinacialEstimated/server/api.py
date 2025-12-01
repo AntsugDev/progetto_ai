@@ -4,7 +4,7 @@ import os
 # Aggiungi la directory superiore al path di Python
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from fastapi import FastAPI
+from fastapi import FastAPI,HTTPException
 from request_validation import RequestValidation,ResponseValidation, Revision
 from upload_model import UploadModel
 from server import Server
@@ -12,6 +12,7 @@ from modelRevision import ModelRevision
 from calcoli import Calcoli
 from datetime import datetime
 import pandas as pd
+from data_create import DataCreate
 
 app = FastAPI(title="API di predizione finanziaria", version="1.0.0")    
 upload_model = UploadModel()
@@ -33,34 +34,43 @@ def predict(request: RequestValidation):
             'request':request.request,
             'nr_rate':request.nr_rate
         }
-        df = pd.DataFrame(X,columns=['reddito', 'altre_spese', 'request', 'nr_rate'])
-        y_pred = model.predict(df)
+
+        data = DataCreate(X)
+        df = data.get_data()
+        from clearData import ClearData
+        clearData = ClearData(df)
+        df_clear = clearData.clear()
+        y_pred = model.predict(df_clear)
         importo_rata = y_pred[:, 0]
         sostenibilita = y_pred[:, 1]
-
-        revision = ModelRevision(sostenibilita[0],request)
+#
+        revision = ModelRevision(sostenibilita[0],X)
         revision, lastId = revision.migliore_scelta()
-
+        
+        if revision:
+            revision = Revision(
+                nr_rate= revision['nr_rate'],
+                importo_rata= round(revision['importo_rata'], 2),
+                sostenibilita= round(revision['sostenibilita'], 2),
+                prevision= revision['prevision']
+            )
         response =  ResponseValidation(
             data = datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             reddito_netto=request.reddito,
             importo_da_fin=request.request,
-            importo_rata=float(round(importo_rata[0], 2)),
-            sostenibilita=float(round(sostenibilita[0]*100, 2)),
-            decisione_ai=calcoli.decisionAI(sostenibilita[0])
+            importo_rata=round(importo_rata[0], 2),
+            sostenibilita=round(sostenibilita[0], 2),
+            decisione_ai=calcoli.decisionAI(sostenibilita[0]),
+            revision=revision if revision else None
         )
-
-        if revision:
-            revision = Revision({
-                'nr_rate': revision['nr_rate'],
-                'importo_rata': float(round(revision['importo_rata'], 2)),
-                'sostenibilita': float(round(revision['sostenibilita']*100, 2))
-            })
-        
         return response
+
+       
+        
         
     except Exception as e:
         print(f"Errore durante la previsione: {str(e)}")
-        raise e
+        raise HTTPException(status_code=500, detail=f"Errore interno del server: {str(e)}")
 
-server.run()       
+if __name__ == '__main__':
+    server.run()       

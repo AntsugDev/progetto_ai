@@ -11,6 +11,7 @@ class Revision(BaseModel):
      nr_rate: int = Field(...)
      importo_rata : float = Field(...)
      sostenibilita : float = Field(...)
+     prevision: str = Field(...)
 
 
 class ResponseValidation(BaseModel):

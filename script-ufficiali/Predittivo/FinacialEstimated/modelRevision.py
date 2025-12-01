@@ -24,8 +24,6 @@ class ModelRevision:
         revision = []
        
         if(self.sostenibilita >= 0.35 and self.data):
-            print(f"sostenibilita: {self.sostenibilita}")
-            exit()
             for i in range(int(self.data['nr_rate'])+1, MAX_RATE):
                 data_cp = self.data.copy()
                 diff_reddito, taeg = self.calcoli.calcola(data_cp)
