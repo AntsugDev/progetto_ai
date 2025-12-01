@@ -4,8 +4,8 @@ import os
 # Aggiungi la directory superiore al path di Python
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from fastapi import FastAPI,HTTPException
-from request_validation import RequestValidation,ResponseValidation, Revision
+from fastapi import FastAPI,HTTPException, Depends, APIRouter
+from request_validation import RequestValidation,ResponseValidation, Revision, AuthResponse, LoginRequest
 from upload_model import UploadModel
 from server import Server
 from modelRevision import ModelRevision
@@ -13,6 +13,7 @@ from calcoli import Calcoli
 from datetime import datetime
 import pandas as pd
 from data_create import DataCreate
+from auth import *
 
 app = FastAPI(title="API di predizione finanziaria", version="1.0.0")    
 upload_model = UploadModel()
@@ -23,9 +24,28 @@ server = Server(app)
 
 @app.get("/healt-check")
 def healt_check():
-    return {"status": "ok"}   
+    return {"status": "ok"} 
 
-@app.post("/predict", response_model=ResponseValidation)
+@app.post("/login", response_model=AuthResponse)
+def login(data: LoginRequest):
+    #todo search user in db
+    try:
+        token = create_token(data.dict())
+        if token:
+            return AuthResponse(access_token=token)
+        else:
+            raise HTTPException(status_code=401, detail="Credenziali non valide")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail=f"Errore interno del server: {str(e)}")
+
+protected_router = APIRouter(
+    prefix="/api",
+    dependencies=[Depends(verify_token)]  # JWT richiesto per TUTTO
+)
+
+
+@protected_router.post("/predict", response_model=ResponseValidation)
 def predict(request: RequestValidation):
     try:
         X = {
@@ -71,6 +91,8 @@ def predict(request: RequestValidation):
     except Exception as e:
         print(f"Errore durante la previsione: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Errore interno del server: {str(e)}")
+
+app.include_router(protected_router)
 
 if __name__ == '__main__':
     server.run()       

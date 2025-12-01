@@ -23,4 +23,9 @@ class ResponseValidation(BaseModel):
      decisione_ai : str = Field(...)
      revision: Optional[Revision] = None
 
-     
+class AuthResponse(BaseModel):
+     access_token:str =Field(...)     
+
+class LoginRequest(BaseModel):
+     username: str = Field(...)
+     password: str = Field(...)     
