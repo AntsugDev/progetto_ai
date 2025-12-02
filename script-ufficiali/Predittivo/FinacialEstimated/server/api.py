@@ -14,6 +14,7 @@ from datetime import datetime
 import pandas as pd
 from data_create import DataCreate
 from auth import *
+from typing import Literal
 
 app = FastAPI(title="API di predizione finanziaria", version="1.0.0")    
 upload_model = UploadModel()
@@ -91,6 +92,26 @@ def predict(request: RequestValidation):
     except Exception as e:
         print(f"Errore durante la previsione: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Errore interno del server: {str(e)}")
+
+@protected_router.get("/accept/{is_accept}/{id}")
+def accept(is_accept: Literal['S','N'],id: int):
+    try:
+        from connectionFe import ConnectionFe
+        from querys import UPDATE_PREVISIONING, VERIFY_PREVISIONING
+        c = ConnectionFe().conn()
+        cc = c.cursor()
+        with cc as cursor:
+            cursor.execute(VERIFY_PREVISIONING, (id))
+            row = cursor.fetchone()
+            if row['is_count'] == 0:
+                raise HTTPException(status_code=404, detail="Previsione non trovata")
+            cursor.execute(UPDATE_PREVISIONING, (is_accept, id)) 
+        c.commit()
+        return {"message": "Previsione aggiornata con accettata" if is_accept == 'S' else "Previsione aggiornata con rifiutata"}
+    except Exception as e:
+        print(f"Errore durante l'accept: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Errore interno del server: {str(e)}")
+   
 
 app.include_router(protected_router)
 

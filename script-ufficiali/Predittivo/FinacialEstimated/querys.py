@@ -10,6 +10,9 @@ INSERT_REVISION = """ INSERT INTO revisions (
 
 UPDATE_PREVISIONING = """ UPDATE previsioning SET is_accetable = %s WHERE id = %s """
 
+VERIFY_PREVISIONING = """ SELECT count(*) as is_count FROM previsioning WHERE id = %s """
+
+
 UPDATE_MODEL = """ UPDATE model_fe SET nr_rate = %s, importo_rata = %s, sostenibilita = %s, updated_at = %s, sync = 'N' WHERE id = %s """
 
 
