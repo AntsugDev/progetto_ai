@@ -1,0 +1,11 @@
+pandas
+pymysql
+fastapi
+uvicorn
+joblib
+numpy
+scikit-learn
+xgboost
+PyJWT
+uuid
+pydantic
