@@ -124,5 +124,7 @@ def accept(is_accept: Literal['S','N'],id: int):
 
 app.include_router(protected_router)
 
-if __name__ == '__main__':
-    server.run()       
+#---------------@ TODO @---------------------------
+#rimosso perchè il docker file esegue direttamente unicoirv, senza il bisogno di avviare il server
+#if __name__ == '__main__':
+#    server.run()       
