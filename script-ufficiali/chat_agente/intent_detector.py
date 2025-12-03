@@ -86,10 +86,10 @@ class IntentDetector:
         print(status)
         print("-"*60+"\n")
 
-        status_result = max(status, key=status.get)
-        filtro = [k for k, v in status.items() if v != 0]
+        status_result = max(status.values())
+        filtro = [k for k, v in status.items() if v ==status_result]
         if(len(filtro) == 1):
-            return status_result
+            return filtro[0]
         else:
             return "Non ho compreso bene la tua richiesta"
 
