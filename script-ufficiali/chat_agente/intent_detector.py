@@ -68,20 +68,30 @@ class IntentDetector:
         """
         msg = msg.lower()
 
+        status = {intent: 0 for intent in self.patterns.keys()}
+
         # Cerca parola chiave per ogni intent
         for intent, pattern_list in self.patterns.items():
             for p in pattern_list:
-                search = re.search(f"{p}[\s\?\.!,;]*", msg)
-                print(msg,search)    
+                search = re.search(p, msg)
                 if search:
-                    return intent
+                    status[intent] += 1
 
-        # Se l'utente parla ma non dà numeri → dati mancanti
-        if not re.search(r"\d+", msg):
-            return "dati_mancanti"
+        if all(status == 0 for status in status.values()):
+            if not re.search(r"\d+", msg):
+                return "dati_mancanti"
+            return "simulazione"
 
-        # Se non trova nulla → simulazione (fallback)
-        return "simulazione"
+        print("-"*30+"STATUS"+"-"*30)
+        print(status)
+        print("-"*60+"\n")
+
+        status_result = max(status, key=status.get)
+        filtro = [k for k, v in status.items() if v != 0]
+        if(len(filtro) == 1):
+            return status_result
+        else:
+            return "Non ho compreso bene la tua richiesta"
 
 if __name__ == "__main__":
     detector = IntentDetector()
