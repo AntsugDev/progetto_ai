@@ -62,10 +62,7 @@ class IntentDetector:
         }
 
 
-    def get_intent(self, msg: str)->str:
-        """
-        Ritorna l'intent più probabile.
-        """
+    def get_intent(self, msg: str) -> str:
         msg = msg.lower()
 
         status = {intent: 0 for intent in self.patterns.keys()}
@@ -73,27 +70,30 @@ class IntentDetector:
         # Cerca parola chiave per ogni intent
         for intent, pattern_list in self.patterns.items():
             for p in pattern_list:
-                search = re.search(p, msg)
-                if search:
+                if re.search(p, msg):
                     status[intent] += 1
 
-        if all(status == 0 for status in status.values()):
+        # Nessun match → verifica numeri
+        if all(v == 0 for v in status.values()):
             if not re.search(r"\d+", msg):
                 return "dati_mancanti"
             return "simulazione"
 
-        print("-"*30+"STATUS"+"-"*30)
-        print(status)
-        print("-"*60+"\n")
 
-        status_result = max(status.values())
-        filtro = [k for k, v in status.items() if v ==status_result]
-        if(len(filtro) == 1):
-            return filtro[0]
-        else:
-            return "Non ho compreso bene la tua richiesta"
+        # Intent con punteggio massimo
+        max_score = max(status.values())
+        candidati = [k for k, v in status.items() if v == max_score]
+
+        # Se c'è un solo intento → ok
+        if len(candidati) == 1:
+            return candidati[0]
+        list_intent = ", ".join(candidati)
+        # Parità → richiesta ambigua
+        return f"La tua richiesta contiene più aspetti ({list_intent}). Puoi dirmi cosa vuoi sapere per primo?"
 
 if __name__ == "__main__":
+    print("-"*80)
+    print("Prova di intent dectector ...\n")
     detector = IntentDetector()
     #richiesta = input("Inserisci la tua richiesta: ")
     richiesta = "è consigliabile un prestito di 5000 euro per una rata mensile di 250 euro e con un reddito di 1245 euro?"
