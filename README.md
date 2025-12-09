@@ -6,13 +6,24 @@ Per maggiori dettagli si rimanda [Progetto AI- WORLD](https://docs.google.com/do
 
 Questo progetto ha lo scopo di creare un AI a fini di studio.
 
-Il progetto laravel in essere, ha il solo scopo di confronto dei risultati ottenuti dallo script in python e si trova nella directory [LARAVEL](php-test/control_data_model)
-
 Nella directory **script_ufficiali**, si trovano gli script python
 
+Questa directory è così divisa:
+- *Predittivo*: contiene i file per creare e addestrare il modello predittivo
+- *Chat Agente*: contiene i file per creare e addestrare il modello di chat
+- *Parte Iniziale*: contiene i file per creare e addestrare il modello di chat (test)
+- *.docker*: in questa directory si trova il progetto e il docker file con per avviare un server, con le api necessaria al funzionamento del modello
+
+All'interno della directory **Predittivo** si trovano:
+
+- *FinacialEstimated* : modello di creazione di un agente predittivo per definire l'importo della rata del finanziamento e la sostenibilità
+- *ModelVenditaAuto*: model creatto secondo le regole del file docx definito sopra
+- *Bayesiano*: modello di test usato per studaiare gli algoritmi di Bayes
 
 
 ## Logica
+
+### Modello predittivo vendita auto
 
 - definiamo una soglia di reddito che deve essere uguale a :
 		<code>RedditoMedio + (RedditoMedio *(RedditoMin/RedditoMax))</code>, con il risultato che se è minore di 2000, prendo la formula , altrimenti prendo 2000
@@ -37,22 +48,32 @@ Nella directory **script_ufficiali**, si trovano gli script python
 	- se auto nuova calcolo:
 	       - simulazione più rate = nrRate +(Ic * 40% * nrRate); quindi dovrà essere ricalcolata la nuova rata e la sostenibilità
 	- a questo punto espongo i risultati, vedendo innanzitutto se la sostenibilità è inferiore al 25% e confronto quale tra le due sia la minore; quella che lo è risulta la decisione dell'AI   
-	
-## Fasi
 
-### Creazione del modello
+***
+### Modello predittivo finanziamento
 
-Attraverso il file [model.py](script-ufficiali/Parte Iniziale -model data/model.py), viene creato il modello base e le condizioni di valutazione ed esito del modello; in questo sono presenti lo studio e la definizione delle condizioni
+In questo modello si un agente ai per definiree l'importo  della rata e la sostenibilità, relativa al reddito.
+Le regole per il calcolo dell'importo della rata sono date dall'analisi finanziara, fatto salvo di conoscere:
 
-Il file  [read_data](script-ufficiali/Parte Iniziale -model data/read_data.py), serve per inserire dei dati grezzi base (100 righe) sul database
+- il reddito
+- le spese totali che influiscono sul reddito
+- il nr. delle rate
+- l'importo del finanziamento da richiedere
 
-Da questi due file si passa allo studio dei modelli, iniziando dal **Predittivo**
+In questo modello, sis richiede a quest'ultimo di calcolare e definire queste tre variabili:
 
-## Modello Predittivo
+- importo della rata
+- la sostenibilità (rata/ reddito)
+- in base la sostenibilità, se il finanziamento è accettabile o meno; se non lo è prevedere una simulazione di possibile soluzione accettabile
 
-Questo è presente nella directory [Predittivo](/home/famigliapassasugamele/web/PYTHON/PROGETTO/script-ufficiali/Predittivo), in cui sono presenti i seguenti file:
+***
 
-- *train_model.py*, dove viene creato il file del modello e dove viene addestrato quet'ultimo
-- *calcoli.py*, dove sono riportati i calcoli delle condizioni esposte nel file *model.py*
-- *update.py*, dove vengono eseguite le query di inserimento e aggiornamento dei dati
-- *test_model.py*, test di prova
+## Linguaggi usati e installazioni
+
+- python (versione usata in questa progetto la 3.13.3)
+- le librerie installabile con il file [libraries.txt](script-ufficiali/.docker/libraries.txt), installabile attraverso questo commando:
+	<pre>pip install -r libraries.txt</pre>
+- il file docker è presente all'interno della directory [Dockerfile](script-ufficiali/.docker/Dockerfile), eseguibile attraverso il commando:
+    - build: <pre>docker build -t ai .</pre>
+    - run: <pre>docker run -p 8000:8000 ai</pre>	
+
