@@ -26,3 +26,7 @@ VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) """
 
 CALL_LAST_VERSION = """ SELECT model_path FROM model_versions WHERE created_at = (SELECT MAX(created_at) FROM model_versions) """
 SELECT_ALL_VERSION = """ SELECT * FROM model_versions """
+
+
+INSERT_MODEL_DATA = """ INSERT INTO finacial_estimated.model_fe
+(reddito, altre_spese, request, taeg, nr_rate,diff_reddito, importo_rata, sostenibilita) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) """
