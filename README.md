@@ -76,7 +76,7 @@ In questo modello, sis richiede a quest'ultimo di calcolare e definire queste tr
 - il file docker è presente all'interno della directory [Dockerfile](script-ufficiali/.docker/Dockerfile), eseguibile attraverso il commando (questo progetto è legato al **modello predittivo finanziamento**):
     - build: <pre>docker build -t ai .</pre>
     - run: <pre>docker run -p 8000:8000 ai</pre>	
-- database mysql: per poter usare il progetto creare un database mysql con il nome **finacial_estimated**, usando la ddl presente nella directory [ddl](script-ufficiali/.docker/ddl.sql); per le credenziali (da modificare) vedere il file [connectionFe.py](script-ufficiali/.docker/connectionFe.py)
+- database mysql: per poter usare il progetto creare un database mysql con il nome **finacial_estimated**, usando la ddl presente nella directory [ddl](script-ufficiali/.docker/ddl/ddl.sql); per le credenziali (da modificare) vedere il file [connectionFe.py](script-ufficiali/.docker/connectionFe.py)
 - per inizializzare i dati, eseguire il file [data_init.py](script-ufficiali/.docker/data_init.py)
 
 
